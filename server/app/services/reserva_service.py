@@ -1,10 +1,13 @@
 # ===========================================================================
 # IMF TURISMO — serviço de reservas
 # Regras de negócio do fluxo de reserva:
-#   - validação explícita de vagas antes do insert (seção 6.6 do PRODUCT.md,
-#     não dependendo apenas do trigger do banco);
-#   - cancelamento respeitando o prazo da excursão (prazo_cancelamento_dias,
-#     RF06) e devolução das vagas ao estoque.
+#   - validação explícita de vagas antes do insert (seção 6.6, retorno amigável)
+#   - cancelamento respeitando o prazo da excursão (prazo_cancelamento_dias, RF06)
+#
+# O schema real possui triggers (fn_checar_vagas / fn_atualizar_vagas) que
+# mantêm vagas_disponiveis sincronizadas. Por isso, este serviço NÃO ajusta
+# manualmente as vagas — apenas valida e altera o status, deixando o trigger
+# do banco atualizar o estoque (evita dupla contagem).
 # ===========================================================================
 
 from datetime import date, datetime, timezone
@@ -26,21 +29,22 @@ def criar_reserva(
     qtd_vagas: int,
     passageiros: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """Cria uma reserva com status 'pendente' e devolve as vagas do estoque.
+    """Cria uma reserva com status 'pendente'.
 
     Raises:
         VagasInsuficientesError: se a excursão não comportar a quantidade pedida.
     """
     excursao = obter_excursao(id_excursao)
 
-    # Validação de overbooking na camada de aplicação (seção 6.6), antes de
-    # qualquer insert — retorna erro amigável sem depender do trigger.
+    # Validação de overbooking na camada de aplicação (seção 6.6): mesmo com o
+    # trigger no banco, validamos aqui para retornar erro amigável ao usuário.
     if excursao["vagas_disponiveis"] < qtd_vagas:
         raise VagasInsuficientesError(
             f"Vagas insuficientes. Disponiveis: {excursao['vagas_disponiveis']}"
         )
 
-    # Reserva sempre nasce 'pendente' até a confirmação de pagamento (seção 3.4).
+    # Reserva nasce 'pendente' até a confirmação de pagamento (seção 3.4).
+    # data_reserva tem DEFAULT NOW() no banco; o trigger decrementa as vagas.
     reserva = (
         supabase.get_supabase()
         .table("reserva")
@@ -50,8 +54,6 @@ def criar_reserva(
                 "id_excursao": id_excursao,
                 "qtd_vagas": qtd_vagas,
                 "status": "pendente",
-                # Timestamp em UTC (fuso invariável) para ordenação consistente.
-                "data_criacao": datetime.now(timezone.utc).isoformat(),
             }
         )
         .execute()
@@ -61,13 +63,8 @@ def criar_reserva(
     # Registra um passageiro por vaga, vinculado à reserva recém-criada.
     if passageiros:
         supabase.get_supabase().table("passageiro").insert(
-            [{"id_reserva": reserva["id"], **passageiro} for passageiro in passageiros]
+            [{"id_reserva": reserva["id_reserva"], **passageiro} for passageiro in passageiros]
         ).execute()
-
-    # Decrementa as vagas disponíveis para manter o estoque consistente.
-    supabase.get_supabase().table("excursao").update(
-        {"vagas_disponiveis": excursao["vagas_disponiveis"] - qtd_vagas}
-    ).eq("id", id_excursao).execute()
 
     return reserva
 
@@ -79,7 +76,7 @@ def listar_minhas(id_cliente: int) -> list[dict[str, Any]]:
         .table("reserva")
         .select("*")
         .eq("id_cliente", id_cliente)
-        .order("data_criacao", desc=True)
+        .order("data_reserva", desc=True)
         .execute()
         .data
     )
@@ -88,41 +85,31 @@ def listar_minhas(id_cliente: int) -> list[dict[str, Any]]:
     for reserva in reservas:
         excursao = obter_excursao(reserva["id_excursao"])
         reserva["excursao_destino"] = excursao["destino"]
-        reserva["excursao_nome"] = excursao["nome"]
+        reserva["excursao_nome"] = excursao["nome_excursao"]
 
     return reservas
 
 
-def _cancelar_comum(
-    reserva: dict[str, Any], id_excursao: int, devolver_vagas: bool
-) -> dict[str, Any]:
-    """Marcar a reserva como cancelada e devolver as vagas à excursão.
+def _cancelar_comum(reserva: dict[str, Any]) -> dict[str, Any]:
+    """Marca a reserva como cancelada. O trigger do banco devolve as vagas.
 
     Comum ao cancelamento pelo cliente (com prazo) e pelo admin (manual).
     """
     supabase.get_supabase().table("reserva").update({"status": "cancelada"}).eq(
-        "id", reserva["id"]
+        "id_reserva", reserva["id_reserva"]
     ).execute()
-
-    if devolver_vagas:
-        # O estoque de vagas volta a aumentar quando a reserva é cancelada.
-        excursao = obter_excursao(id_excursao)
-        supabase.get_supabase().table("excursao").update(
-            {"vagas_disponiveis": excursao["vagas_disponiveis"] + reserva["qtd_vagas"]}
-        ).eq("id", id_excursao).execute()
-
     return reserva
 
 
 def _prazo_de_cancelamento_ok(excursao: dict[str, Any], hoje: date) -> bool:
     """Verifica se ainda é possível cancelar dentro do prazo (RF06).
 
-    O cancelamento é permitido enquanto a diferença entre a data de saída e
-    hoje for maior ou igual ao prazo_cancelamento_dias da excursão.
+    Permitido enquanto a diferença entre data_ida e hoje for maior ou igual a
+    prazo_cancelamento_dias da excursão.
     """
-    data_saida = date.fromisoformat(excursao["data_saida"])
+    data_ida = date.fromisoformat(excursao["data_ida"])
     prazo = excursao.get("prazo_cancelamento_dias") or 0
-    return (data_saida - hoje).days >= prazo
+    return (data_ida - hoje).days >= prazo
 
 
 def cancelar_reserva(id_cliente: int, id_reserva: int, hoje: date | None = None) -> dict[str, Any]:
@@ -134,15 +121,14 @@ def cancelar_reserva(id_cliente: int, id_reserva: int, hoje: date | None = None)
             mas o back-end valida de novo — seção 3.5).
     """
     # `hoje` é injetável para permitir testes determinísticos de prazo.
-    # Usa a data local (fuso do servidor), que é a referência de negócio para
-    # o prazo de cancelamento da excursão.
+    # Usa a data local (fuso do servidor), referência de negócio do prazo.
     hoje = hoje or datetime.now(timezone.utc).date()
 
     reserva = (
         supabase.get_supabase()
         .table("reserva")
         .select("*")
-        .eq("id", id_reserva)
+        .eq("id_reserva", id_reserva)
         .maybe_single()
         .execute()
         .data
@@ -162,4 +148,4 @@ def cancelar_reserva(id_cliente: int, id_reserva: int, hoje: date | None = None)
     if not _prazo_de_cancelamento_ok(excursao, hoje):
         raise PrazoCancelamentoExpiradoError()
 
-    return _cancelar_comum(reserva, reserva["id_excursao"], devolver_vagas=True)
+    return _cancelar_comum(reserva)

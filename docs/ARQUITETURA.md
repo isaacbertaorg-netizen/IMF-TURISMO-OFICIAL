@@ -37,21 +37,27 @@ Optamos por **FastAPI** em vez de Django porque:
 
 ## Autenticação
 
-A autenticação usa o **Supabase Auth** nativo (`auth.users`) em vez de
-gerenciar hash de senha manualmente, conforme a nota de arquitetura da seção 1.
-`cliente` e `administrador` se ligam a `auth.users` via uma coluna
-`id_auth_user`. O back-end cria o vínculo em `cliente` no cadastro (nunca
-confiando apenas no front-end) e as dependências `get_current_cliente` /
-`get_current_admin` (`app/core/auth.py`) validam token + vínculo em cada rota
-protegida.
+> **Desvio documentado em relação à nota da seção 1 do PRODUCT.md.**
+> A nota recomendava usar o Supabase Auth (`auth.users`) em vez de gerenciar
+> senha. Porém o schema real (`imf_turismo_schema.sql`) armazena `senha_hash`
+> diretamente em `cliente` e `administrador` e não possui coluna `id_auth_user`.
+> Como as rotas devem se adequar a esse banco, a autenticação foi implementada
+> com **bcrypt** para o hash das senhas e **JWT próprio** para a sessão
+> (`app/core/security.py`). As dependências `get_current_cliente` /
+> `get_current_admin` (`app/core/auth.py`) validam o JWT e o papel a cada rota.
+>
+> Se no futuro quiser migrar para o Supabase Auth, basta adicionar a coluna
+> `id_auth_user UUID REFERENCES auth.users(id)` nas duas tabelas e trocar a
+> camada de autenticação — o restante da API permanece.
 
 ## Superfície da API (rotas implementadas)
 
 | Método | Rota                          | Acesso        | Descrição                                   |
 | ------ | ----------------------------- | ------------- | ------------------------------------------- |
 | GET    | `/api/health`                 | Público       | Healthcheck do serviço                      |
-| POST   | `/api/login`                  | Público (RL)  | Login via Supabase Auth, retorna token      |
-| POST   | `/api/cadastro`               | Público (RL)  | Cria auth.user + linha em `cliente`         |
+| POST   | `/api/login`                  | Público (RL)  | Login de cliente (e-mail + senha_hash), JWT |
+| POST   | `/api/admin/login`            | Público (RL)  | Login de administrador (rota oculta, 3.7)   |
+| POST   | `/api/cadastro`               | Público (RL)  | Cria cliente com senha hasheada             |
 | GET    | `/api/excursoes`              | Público       | Listagem com filtros (RF02)                 |
 | GET    | `/api/excursoes/{id}`         | Público       | Detalhes da excursão                        |
 | POST   | `/api/reservas`               | Cliente (RL)  | Cria reserva com passageiros (RF04)         |
@@ -71,15 +77,30 @@ protegida.
 - `app/services/` — regras de negócio (validação de vagas, prazo de
   cancelamento) testáveis isoladamente.
 - `app/routes/` — rotas HTTP (validação + autenticação + rate limit).
-- `app/core/` — client Supabase, autenticação, rate limit e exceções de domínio.
-- `tests/` — suíte pytest com um **Supabase fake em memória** (conftest),
-  permitindo TDD sem credenciais reais.
+- `app/core/` — client Supabase, autenticação/JWT, rate limit e exceções de domínio.
+- `tests/` — suíte pytest com um **Supabase fake em memória** (conftest) que
+  simula os triggers de vagas do banco, permitindo TDD sem credenciais reais.
 
 ## Nota sobre o schema
 
-O arquivo `imf_turismo_schema.sql` não está versionado no repositório. As
-consultas usam os nomes descritos no PRODUCT.md (`cliente`, `administrador`,
-`excursao`, `reserva`, `passageiro`), com colunas como `id_auth_user`,
-`vagas_disponiveis`, `prazo_cancelamento_dias`, `status`, `data_saida` e
-`data_retorno`. Caso o schema real difira, os serviços em `app/services/`
-concentram os nomes de coluna para ajuste pontual.
+O back-end foi validado contra o schema real do Supabase (as 7 tabelas e
+todas as colunas foram confirmadas por conexão em 30/08/2026). As consultas
+usam os nomes reais das colunas:
+
+- `cliente`: `id_cliente`, `nome_cliente`, `cpf`, `email`, `telefone`,
+  `endereco`, `senha_hash`, `data_cadastro`.
+- `administrador`: `id_admin`, `nome_admin`, `login_admin`, `senha_admin`.
+- `excursao`: `id_excursao`, `id_admin`, `nome_excursao`, `destino`,
+  `data_ida`, `data_volta`, `vagas_totais`, `vagas_disponiveis`,
+  `valor_pessoa`, `descricao_roteiro`, `itens_inclusos`,
+  `prazo_cancelamento_dias`.
+- `reserva`: `id_reserva`, `id_cliente`, `id_excursao`, `qtd_vagas`,
+  `data_reserva`, `status` (enum).
+- `passageiro`: `id_passageiro`, `id_reserva`, `nome_passageiro`, `cpf`,
+  `data_nascimento`.
+
+O schema usa triggers (`fn_atualizar_vagas` / `fn_checar_vagas`) para manter
+`vagas_disponiveis` sincronizadas. Por isso os serviços **não** ajustam as
+vagas manualmente — apenas validam o overbooking na camada de aplicação
+(seção 6.6) e alteram o status da reserva, deixando o trigger atualizar o
+estoque (evita dupla contagem). O fake dos testes simula esses triggers.

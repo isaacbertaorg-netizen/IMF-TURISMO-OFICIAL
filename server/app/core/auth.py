@@ -4,10 +4,9 @@
 #   - get_current_cliente: rotas de cliente autenticado (/api/reservas/*).
 #   - get_current_admin: rotas administrativas (/api/admin/*).
 #
-# O token é extraído do header Authorization (Bearer) e validado com o
-# Supabase Auth (auth.users). Depois, verificamos o vínculo do usuário com a
-# tabela cliente/administrador — nunca confiamos apenas no front-end para
-# autorizar o acesso.
+# O token é um JWT próprio (app/core/security.py) que carrega o id e o papel
+# do usuário. As rotas administrativas também checam o papel 'admin' — nunca
+# confiamos apenas no front-end para autorizar o acesso.
 # ===========================================================================
 
 from typing import Any
@@ -16,6 +15,7 @@ from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core import supabase
+from app.core.security import validar_token
 
 # auto_error=False permite tratar a ausência do header com mensagem própria.
 _bearer = HTTPBearer(auto_error=False)
@@ -28,18 +28,13 @@ def _extrair_token(credenciais: HTTPAuthorizationCredentials | None) -> str:
     return credenciais.credentials
 
 
-def _validar_usuario_auth(token: str) -> dict[str, Any]:
-    """Valida o token no Supabase Auth e retorna o usuário autenticado."""
+def _validar_jwt(token: str) -> dict[str, Any]:
+    """Valida o JWT e retorna o payload (id + papel)."""
     try:
-        resposta = supabase.get_supabase().auth.get_user(token)
-    except Exception:  # noqa: BLE001 - fronteira com Supabase: qualquer falha de
-        # validação (token inválido, expirado ou serviço indisponível) resulta
-        # em não autorizado — nunca expor o motivo exato ao cliente.
+        payload = validar_token(token)
+    except Exception:  # noqa: BLE001 - fronteira: token inválido ou expirado vira 401.
         raise HTTPException(status_code=401, detail="Token invalido ou expirado") from None
-    usuario = resposta.user
-    if usuario is None:
-        raise HTTPException(status_code=401, detail="Token invalido ou expirado")
-    return usuario
+    return payload
 
 
 def get_current_cliente(
@@ -47,24 +42,26 @@ def get_current_cliente(
 ) -> dict[str, Any]:
     """Dependência para rotas de cliente autenticado.
 
-    Retorna a linha da tabela `cliente` vinculada ao auth.user do token.
-    O id_cliente SEMPRE vem do token (nunca do body da requisição).
+    Retorna a linha da tabela `cliente`. O id_cliente SEMPRE vem do token
+    (nunca do body da requisição — seção 6.2).
     """
     token = _extrair_token(credenciais)
-    usuario = _validar_usuario_auth(token)
+    payload = _validar_jwt(token)
+
+    if payload.get("papel") != "cliente":
+        raise HTTPException(status_code=403, detail="Token nao corresponde a um cliente")
 
     cliente = (
         supabase.get_supabase()
         .table("cliente")
         .select("*")
-        .eq("id_auth_user", usuario["id"])
+        .eq("id_cliente", int(payload["sub"]))
         .maybe_single()
         .execute()
         .data
     )
     if cliente is None:
-        # Usuário válido no Supabase, mas sem registro em cliente.
-        raise HTTPException(status_code=403, detail="Usuario sem perfil de cliente")
+        raise HTTPException(status_code=401, detail="Cliente nao encontrado")
 
     return cliente
 
@@ -74,22 +71,25 @@ def get_current_admin(
 ) -> dict[str, Any]:
     """Dependência para rotas administrativas.
 
-    Exige usuário válido no Supabase E registro na tabela `administrador`
-    com role ADMIN. Mesmo com login válido, sem role ADMIN o acesso é negado.
+    Exige um JWT com papel 'admin' E registro na tabela `administrador`.
+    Um cliente com token válido não acessa /api/admin/* (403).
     """
     token = _extrair_token(credenciais)
-    usuario = _validar_usuario_auth(token)
+    payload = _validar_jwt(token)
+
+    if payload.get("papel") != "admin":
+        raise HTTPException(status_code=403, detail="Acesso restrito a administradores")
 
     admin = (
         supabase.get_supabase()
         .table("administrador")
         .select("*")
-        .eq("id_auth_user", usuario["id"])
+        .eq("id_admin", int(payload["sub"]))
         .maybe_single()
         .execute()
         .data
     )
-    if admin is None or admin.get("role") != "ADMIN":
-        raise HTTPException(status_code=403, detail="Acesso restrito a administradores")
+    if admin is None:
+        raise HTTPException(status_code=401, detail="Administrador nao encontrado")
 
     return admin

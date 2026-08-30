@@ -57,6 +57,8 @@ Copie `.env.example` (raiz) para `server/.env` e preencha com os valores reais:
 - `SUPABASE_URL` — URL do projeto.
 - `SUPABASE_SERVICE_ROLE_KEY` — chave de serviço (somente back-end).
 - `SUPABASE_ANON_KEY` — chave anônima.
+- `JWT_SECRET` — segredo para assinar os tokens de sessão (opcional; se vazio,
+  usa a chave de serviço). Recomenda-se um valor próprio em produção.
 
 Nunca versione o `.env` (seção 6.3 do PRODUCT.md).
 

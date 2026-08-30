@@ -1,7 +1,7 @@
 # ===========================================================================
-# IMF TURISMO — schemas de cliente
-# Validação do cadastro (RF03, seção 3.3 do PRODUCT.md). O cadastro real exige
-# nome completo, CPF, e-mail, telefone e endereço — não apenas login/senha.
+# IMF TURISMO — schemas de cliente (RF03)
+# Formulário de cadastro. Os campos de API são amigáveis (nome, senha); o
+# serviço mapeia para as colunas nome_cliente e senha_hash da tabela `cliente`.
 # ===========================================================================
 
 import re
@@ -12,7 +12,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 class CadastroCliente(BaseModel):
     """Dados do formulário de criação de conta de cliente."""
 
-    nome: str = Field(min_length=3, max_length=120)
+    nome: str = Field(min_length=3, max_length=150)
     cpf: str
     email: EmailStr
     telefone: str = Field(min_length=8, max_length=20)
@@ -23,11 +23,7 @@ class CadastroCliente(BaseModel):
     @field_validator("cpf")
     @classmethod
     def validar_cpf(cls, valor: str) -> str:
-        """Normaliza o CPF para apenas dígitos e valida o tamanho.
-
-        A validação completa do CPF (dígitos verificadores) é feita no
-        Supabase/banco; aqui garantimos o formato antes de enviar.
-        """
+        """Normaliza o CPF para apenas dígitos e valida o tamanho."""
         digitos = re.sub(r"\D", "", valor)
         if len(digitos) != 11:
             raise ValueError("CPF deve conter 11 digitos")
