@@ -1,9 +1,9 @@
 # ===========================================================================
 # IMF TURISMO — fixtures compartilhadas dos testes
-# Substitui o client do Supabase por um fake em memória (FakeSupabase) que
-# implementa a API fluente usada pelos serviços (table().select().eq()... e
-# auth.sign_up/sign_in/get_user). Isso permite rodar a suíte sem credenciais
-# reais e com dados determinísticos por teste.
+# Substitui o client do Supabase por um fake em memória que reproduz a API
+# fluente usada pelos serviços (table().select().eq()...) e simula os
+# triggers do schema real (decremento/incremento de vagas em reserva).
+# Permite rodar a suíte sem credenciais reais e com dados determinísticos.
 # ===========================================================================
 
 import re
@@ -13,21 +13,27 @@ from fastapi.testclient import TestClient
 
 from app.core import supabase as supabase_module
 from app.core.rate_limit import limiter
+from app.core.security import criar_token
 from app.main import app
 
+# Chave primária de cada tabela (nomes reais do schema).
+PRIMARY_KEYS = {
+    "administrador": "id_admin",
+    "cliente": "id_cliente",
+    "excursao": "id_excursao",
+    "reserva": "id_reserva",
+    "passageiro": "id_passageiro",
+    "pagamento": "id_pagamento",
+    "comprovante": "id_comprovante",
+}
 
-# ---------------------------------------------------------------------------
-# Exceção usada pelo fake de auth para simular falhas do Supabase.
-# ---------------------------------------------------------------------------
-class AuthError(Exception):
-    pass
+# Colunas UNIQUE do schema (usadas para simular violação de unicidade).
+UNIQUE_CONSTRAINTS = {
+    "cliente": ["cpf", "email"],
+    "administrador": ["login_admin"],
+}
 
 
-# ---------------------------------------------------------------------------
-# Objetos que reproduzem o comportamento do client Supabase que usamos.
-# A API real retorna o resultado em .data após .execute(); aqui replicamos
-# essa convenção para que as camadas de serviço não mudem.
-# ---------------------------------------------------------------------------
 class FakeResult:
     def __init__(self, data):
         self.data = data
@@ -36,11 +42,14 @@ class FakeResult:
 class FakeQuery:
     """Query fluente com suporte a filtros, ordenação, update e delete."""
 
-    def __init__(self, underlying):
+    def __init__(self, fake, table_name, underlying):
+        self._fake = fake
+        self._table = table_name
         # `underlying` é a LISTA REAL da tabela (referência), para que update
         # e delete persistam as mudanças no estado do fake.
         self._underlying = underlying
         self._predicates = []
+        self._columns = None
         self._order_col = None
         self._order_desc = False
         self._limit = None
@@ -49,6 +58,13 @@ class FakeQuery:
         self._single = False
 
     def select(self, *cols):
+        # Projeção de colunas: o Supabase retorna apenas as colunas pedidas.
+        # PostgREST aceita colunas separadas por vírgula em uma única string.
+        if cols and cols != ("*",):
+            colunas = []
+            for c in cols:
+                colunas.extend([p.strip() for p in c.split(",") if p.strip()])
+            self._columns = tuple(colunas) if colunas else None
         return self
 
     def eq(self, col, val):
@@ -113,6 +129,9 @@ class FakeQuery:
             linhas = linhas[: self._limit]
 
         if self._pending_update is not None:
+            # Simula o trigger fn_atualizar_vagas ao cancelar uma reserva.
+            if self._table == "reserva" and self._pending_update.get("status") == "cancelada":
+                self._fake._estornar_vagas(linhas)
             for r in linhas:
                 r.update(self._pending_update)
             return FakeResult(linhas)
@@ -122,6 +141,10 @@ class FakeQuery:
                 self._underlying.remove(r)
             return FakeResult(linhas)
 
+        # Aplica a projeção de colunas às leituras (select/single).
+        if self._columns is not None:
+            linhas = [{c: r.get(c) for c in self._columns} for r in linhas]
+
         if self._single:
             return FakeResult(linhas[0] if linhas else None)
 
@@ -129,11 +152,11 @@ class FakeQuery:
 
 
 class FakeInsert:
-    """Insert pendente: atribui id e grava na tabela no .execute()."""
+    """Insert pendente: atribui PK e grava na tabela no .execute()."""
 
     def __init__(self, fake, table_name, data):
         self._fake = fake
-        self._table_name = table_name
+        self._table = table_name
         self._data = data
 
     def execute(self):
@@ -141,9 +164,20 @@ class FakeInsert:
         inseridas = []
         for r in linhas:
             nova = dict(r)
-            nova.setdefault("id", self._fake._next_id(self._table_name))
-            self._fake.tables.setdefault(self._table_name, []).append(nova)
+            pk = PRIMARY_KEYS.get(self._table, "id")
+            nova.setdefault(pk, self._fake._next_id(self._table))
+            # Simula violação de coluna UNIQUE (ex.: CPF/e-mail duplicados).
+            for col in UNIQUE_CONSTRAINTS.get(self._table, []):
+                if nova.get(col) is not None and self._fake._existe(self._table, col, nova[col]):
+                    raise RuntimeError(f"duplicate key value violates unique constraint: {col}")
+            self._fake.tables.setdefault(self._table, []).append(nova)
             inseridas.append(nova)
+
+        # Simula o trigger fn_atualizar_vagas: nova reserva não-cancelada
+        # decrementa as vagas disponíveis da excursão.
+        if self._table == "reserva":
+            self._fake._aplicar_vagas(inseridas)
+
         return FakeResult(inseridas)
 
 
@@ -156,78 +190,29 @@ class FakeTable:
         return self._fake.tables.setdefault(self._name, [])
 
     def select(self, *cols):
-        return FakeQuery(self._rows())
+        # Repassa as colunas ao método select da query (projeção).
+        return FakeQuery(self._fake, self._name, self._rows()).select(*cols)
 
     def insert(self, data):
         return FakeInsert(self._fake, self._name, data)
 
     def update(self, data):
-        q = FakeQuery(self._rows())
+        q = FakeQuery(self._fake, self._name, self._rows())
         q._pending_update = data
         return q
 
     def delete(self):
-        q = FakeQuery(self._rows())
+        q = FakeQuery(self._fake, self._name, self._rows())
         q._pending_delete = True
         return q
 
 
-class FakeAuthResponse:
-    def __init__(self, user=None, session=None):
-        self.user = user
-        self.session = session or {}
-
-
-class FakeAuth:
-    def __init__(self):
-        # users: {id, email, password, session_token}
-        self._users = []
-
-    def sign_up(self, dados):
-        email = dados["email"]
-        if any(u["email"] == email for u in self._users):
-            raise AuthError("User already registered")
-        uid = f"auth-{len(self._users) + 1}"
-        self._users.append(
-            {
-                "id": uid,
-                "email": email,
-                "password": dados["password"],
-                "session_token": f"token-{uid}",
-            }
-        )
-        return FakeAuthResponse(user={"id": uid, "email": email})
-
-    def sign_in_with_password(self, dados):
-        for u in self._users:
-            if u["email"] == dados["email"] and u["password"] == dados["password"]:
-                return FakeAuthResponse(
-                    user={"id": u["id"], "email": u["email"]},
-                    session={"access_token": u["session_token"], "user": u},
-                )
-        raise AuthError("Invalid login credentials")
-
-    def get_user(self, token):
-        for u in self._users:
-            if u["session_token"] == token:
-                return FakeAuthResponse(user={"id": u["id"], "email": u["email"]})
-        raise AuthError("Invalid token")
-
-    def token_para(self, email):
-        """Retorna o token de acesso de um usuário (para headers nos testes)."""
-        for u in self._users:
-            if u["email"] == email:
-                return u["session_token"]
-        raise KeyError(f"usuario {email} nao cadastrado no fake auth")
-
-
 class FakeSupabase:
-    """Client falso: tabelas em memória + auth fake."""
+    """Client falso: tabelas em memória com PKs reais e triggers de vagas."""
 
     def __init__(self):
         self.tables = {}
         self._id_counters = {}
-        self.auth = FakeAuth()
 
     def table(self, name):
         return FakeTable(self, name)
@@ -236,16 +221,48 @@ class FakeSupabase:
         self._id_counters[table_name] = self._id_counters.get(table_name, 0) + 1
         return self._id_counters[table_name]
 
+    def _encontrar_excursao(self, id_excursao):
+        exc = (
+            self.table("excursao")
+            .select("*")
+            .eq("id_excursao", id_excursao)
+            .maybe_single()
+            .execute()
+            .data
+        )
+        return exc
+
+    def _aplicar_vagas(self, reservas):
+        """Trigger de INSERT: decrementa vagas_disponiveis para reservas ativas."""
+        for r in reservas:
+            if r.get("status") == "cancelada":
+                continue
+            exc = self._encontrar_excursao(r["id_excursao"])
+            if exc is not None:
+                exc["vagas_disponiveis"] -= r["qtd_vagas"]
+
+    def _estornar_vagas(self, reservas):
+        """Trigger de UPDATE p/ cancelada: devolve as vagas à excursão."""
+        for r in reservas:
+            exc = self._encontrar_excursao(r["id_excursao"])
+            if exc is not None:
+                exc["vagas_disponiveis"] += r["qtd_vagas"]
+
     def seed(self, table_name, linhas):
-        """Insere linhas diretamente na tabela (sem passar pela API)."""
+        """Insere linhas diretamente na tabela (sem passar pela API nem triggers)."""
         destino = self.tables.setdefault(table_name, [])
         for r in linhas:
             destino.append(dict(r))
         # Ajusta o contador de ids para não colidir com as linhas semeadas.
-        ids = [r.get("id", 0) for r in destino if isinstance(r.get("id"), int)]
+        pk = PRIMARY_KEYS.get(table_name, "id")
+        ids = [r.get(pk, 0) for r in destino if isinstance(r.get(pk), int)]
         self._id_counters[table_name] = max(
             self._id_counters.get(table_name, 0), max(ids, default=0)
         )
+
+    def _existe(self, table_name, col, valor):
+        """Verifica se já existe uma linha com o valor em uma coluna."""
+        return any(r.get(col) == valor for r in self.tables.get(table_name, []))
 
 
 # ---------------------------------------------------------------------------
@@ -263,8 +280,6 @@ def desativar_rate_limit():
 def fake_supabase(monkeypatch):
     """Instala o client fake substituindo a função get_supabase do módulo."""
     fake = FakeSupabase()
-    # Como os serviços chamam supabase.get_supabase() via módulo, substituir
-    # o atributo da função cobre todos os importadores de uma só vez.
     monkeypatch.setattr(supabase_module, "get_supabase", lambda: fake)
     return fake
 
@@ -277,44 +292,36 @@ def client(fake_supabase):
 
 @pytest.fixture()
 def cliente_token(fake_supabase):
-    """Cria um auth.user + linha em cliente e retorna o token de acesso."""
-    fake_supabase.auth.sign_up({"email": "cliente@teste.com", "password": "senha123"})
-    usuario = fake_supabase.auth.token_para("cliente@teste.com")
-    # O id do auth.user é a chave de vínculo com a tabela cliente.
-    id_auth_user = fake_supabase.auth._users[0]["id"]
+    """Cria um cliente na tabela e retorna um JWT de cliente válido."""
     fake_supabase.seed(
         "cliente",
         [
             {
-                "id": 1,
-                "id_auth_user": id_auth_user,
-                "nome": "Cliente Teste",
+                "id_cliente": 1,
+                "nome_cliente": "Cliente Teste",
                 "cpf": "12345678901",
                 "email": "cliente@teste.com",
                 "telefone": "61999999999",
                 "endereco": "Rua A, 1 - Brasilia/DF",
+                "senha_hash": "fake-hash",
             }
         ],
     )
-    return usuario
+    return criar_token(usuario_id=1, papel="cliente")
 
 
 @pytest.fixture()
 def admin_token(fake_supabase):
-    """Cria um auth.user + linha em administrador (role ADMIN) e retorna o token."""
-    fake_supabase.auth.sign_up({"email": "admin@teste.com", "password": "senha123"})
-    usuario = fake_supabase.auth.token_para("admin@teste.com")
-    id_auth_user = fake_supabase.auth._users[0]["id"]
+    """Cria um administrador na tabela e retorna um JWT de admin válido."""
     fake_supabase.seed(
         "administrador",
         [
             {
-                "id": 1,
-                "id_auth_user": id_auth_user,
-                "nome": "Admin Teste",
-                "email": "admin@teste.com",
-                "role": "ADMIN",
+                "id_admin": 1,
+                "nome_admin": "Admin Teste",
+                "login_admin": "admin",
+                "senha_admin": "fake-hash",
             }
         ],
     )
-    return usuario
+    return criar_token(usuario_id=1, papel="admin")
