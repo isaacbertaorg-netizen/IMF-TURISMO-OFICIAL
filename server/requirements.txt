@@ -1,0 +1,24 @@
+# ===========================================================================
+# IMF TURISMO — dependências do back-end (server/)
+# Instale com: pip install -r requirements.txt
+#
+# fastapi/uvicorn    : framework web e servidor ASGI.
+# pydantic           : validação de schema de entrada (seção 6.1).
+# supabase           : client oficial para Supabase (PostgreSQL + Auth + Storage).
+# python-dotenv      : carrega variáveis de ambiente do .env (seção 6.3).
+# slowapi            : rate limiting nas rotas públicas sensíveis (seção 6.5).
+# httpx              : client HTTP usado pelo TestClient/pytest.
+# pytest             : runner da suíte de testes TDD (seção 4).
+# ===========================================================================
+
+# --- Runtime ---
+fastapi
+uvicorn[standard]
+pydantic
+supabase
+python-dotenv
+slowapi
+
+# --- Testes e desenvolvimento ---
+pytest
+httpx
