@@ -1,0 +1,21 @@
+# ===========================================================================
+# IMF TURISMO — configuração de ferramentas Python (ruff)
+# ===========================================================================
+
+[tool.ruff]
+# Fonte de compatibilidade e largura de linha padrão do projeto.
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+# Conjunto de regras ativas: Erros (E), F-strings/undefined (F), Imports (I),
+# Builtins (B), Blind except (BLE) e Datetime timezone (DTZ).
+select = ["E", "F", "I", "B", "BLE", "DTZ"]
+
+# B008: Depends/Query como default de argumento é o padrão idiomático do
+# FastAPI — o framework resolve essas funções no momento da requisição.
+ignore = ["B008"]
+
+[tool.ruff.lint.per-file-ignores]
+# Testes podem usar date.today() para gerar datas relativas a hoje.
+"tests/*" = ["DTZ"]

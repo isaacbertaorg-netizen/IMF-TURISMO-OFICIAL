@@ -34,6 +34,17 @@ class Settings:
         self.server_host = os.getenv("SERVER_HOST", "0.0.0.0")
         self.server_port = int(os.getenv("SERVER_PORT", "8000"))
 
+        # Rate limiting (seção 6.5 do PRODUCT.md). As rotas públicas sensíveis
+        # usam estes limites; desativar em desenvolvimento/testes via RATE_LIMIT_ENABLED=false.
+        self.rate_limit_enabled = os.getenv("RATE_LIMIT_ENABLED", "true").lower() in (
+            "true",
+            "1",
+            "yes",
+        )
+        self.rate_limit_login = os.getenv("RATE_LIMIT_LOGIN", "10/minute")
+        self.rate_limit_cadastro = os.getenv("RATE_LIMIT_CADASTRO", "5/minute")
+        self.rate_limit_reservas = os.getenv("RATE_LIMIT_RESERVAS", "20/minute")
+
 
 # Instância única compartilhada por toda a aplicação.
 settings = Settings()
