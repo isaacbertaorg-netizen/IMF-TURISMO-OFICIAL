@@ -15,6 +15,8 @@
 fastapi
 uvicorn[standard]
 pydantic
+# Validator de e-mail usado por pydantic EmailStr nos schemas.
+email-validator
 supabase
 python-dotenv
 slowapi
@@ -22,3 +24,5 @@ slowapi
 # --- Testes e desenvolvimento ---
 pytest
 httpx
+# Lint e formatação de código.
+ruff

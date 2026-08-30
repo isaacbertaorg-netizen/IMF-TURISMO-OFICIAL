@@ -1,18 +1,20 @@
 # ===========================================================================
 # IMF TURISMO — aplicação FastAPI (back-end)
-# Ponto de entrada do servidor. Este módulo monta o app, aplica os headers de
-# segurança exigidos na seção 6.4 do PRODUCT.md e expõe a rota de healthcheck
-# usada para validar que o serviço está de pé.
-#
-# Este arquivo é um sanity check inicial: ainda não há integração com Supabase,
-# rotas de negócio ou autenticação — essas camadas entram nos próximos
-# checkpoints seguindo o fluxo TDD (seção 4 do PRODUCT.md).
+# Ponto de entrada do servidor. Monta o app, registra os routers, aplica os
+# headers de segurança (seção 6.4 do PRODUCT.md), o CORS restrito e o rate
+# limiter (seção 6.5).
 # ===========================================================================
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.config import settings
+from app.core.exceptions import DomainError, domain_error_handler
+from app.core.rate_limit import limiter
+from app.routes import admin, auth, excursoes, health, reservas
 
 app = FastAPI(
     title="IMF Turismo API",
@@ -26,7 +28,6 @@ app = FastAPI(
 # ---------------------------------------------------------------------------
 # CORS restrito: somente o domínio oficial do front-end é aceito.
 # Em produção NUNCA usar allow_origins=["*"] (seção 6.4 do PRODUCT.md).
-# Os valores vêm de variáveis de ambiente para não endurecer o domínio no código.
 # ---------------------------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
@@ -35,6 +36,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Middleware do rate limiter: aplica os limites definidos nas rotas.
+app.add_middleware(SlowAPIMiddleware)
+
+# Expõe o limiter ao app para o handler de excesso de requisições funcionar.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Converte as exceções de negócio (services) em respostas HTTP adequadas.
+app.add_exception_handler(DomainError, domain_error_handler)
 
 
 # ---------------------------------------------------------------------------
@@ -55,9 +66,10 @@ async def security_headers(request, call_next):
 
 
 # ---------------------------------------------------------------------------
-# Healthcheck: rota leve e sem autenticação usada para verificar se a API
-# está operacional (monitoramento e sanity check de deploy).
+# Registro dos routers da API.
 # ---------------------------------------------------------------------------
-@app.get("/api/health", tags=["health"])
-def healthcheck():
-    return {"status": "ok", "service": "imf-turismo-api"}
+app.include_router(health.router)
+app.include_router(auth.router)
+app.include_router(excursoes.router)
+app.include_router(reservas.router)
+app.include_router(admin.router)
