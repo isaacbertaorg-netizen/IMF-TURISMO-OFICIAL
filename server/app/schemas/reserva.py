@@ -1,7 +1,7 @@
 # ===========================================================================
-# IMF TURISMO — schemas de reserva
-# Validação da criação de reservas (RF04, seção 3.4 do PRODUCT.md). Cada vaga
-# selecionada exige o cadastro de um passageiro (nome, CPF e data de nascimento).
+# IMF TURISMO — schemas de reserva (RF04)
+# Nomes alinhados às colunas das tabelas `reserva` e `passageiro`.
+# Cada vaga selecionada exige o cadastro de um passageiro.
 # ===========================================================================
 
 import re
@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 class PassageiroCreate(BaseModel):
     """Dados de um passageiro da reserva (um por vaga)."""
 
-    nome: str = Field(min_length=3, max_length=120)
+    nome_passageiro: str = Field(min_length=3, max_length=150)
     cpf: str
     data_nascimento: date
 
@@ -32,6 +32,7 @@ class ReservaCreate(BaseModel):
 
     O front-end envia id_excursao, qtd_vagas e a lista de passageiros.
     A quantidade de passageiros deve coincidir com o número de vagas.
+    O id_cliente é injetado pelo back-end a partir do token (seção 6.2).
     """
 
     id_excursao: int

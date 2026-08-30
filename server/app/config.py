@@ -45,6 +45,15 @@ class Settings:
         self.rate_limit_cadastro = os.getenv("RATE_LIMIT_CADASTRO", "5/minute")
         self.rate_limit_reservas = os.getenv("RATE_LIMIT_RESERVAS", "20/minute")
 
+        # JWT de sessão própria. O schema atual não usa Supabase Auth para as
+        # tabelas de negócio (cliente/administrador guardam senha_hash), então
+        # a API emite seus próprios tokens assinados. O secret padrão reutiliza
+        # a chave de serviço; recomenda-se definir JWT_SECRET específico.
+        self.jwt_secret = os.getenv("JWT_SECRET") or self.supabase_service_role_key
+        self.jwt_algorithm = os.getenv("JWT_ALGORITHM", "HS256")
+        # Validade do token em minutos.
+        self.jwt_expire_minutes = int(os.getenv("JWT_EXPIRE_MINUTES", "60"))
+
 
 # Instância única compartilhada por toda a aplicação.
 settings = Settings()

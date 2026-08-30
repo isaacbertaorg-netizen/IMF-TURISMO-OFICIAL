@@ -20,6 +20,10 @@ email-validator
 supabase
 python-dotenv
 slowapi
+# Hash de senha (schema usa senha_hash em cliente/administrador).
+bcrypt
+# Geração/validação de token JWT de sessão própria.
+PyJWT
 
 # --- Testes e desenvolvimento ---
 pytest

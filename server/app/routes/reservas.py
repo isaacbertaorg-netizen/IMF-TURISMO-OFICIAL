@@ -28,7 +28,7 @@ def criar_reserva(
 ):
     """Cria uma reserva para o cliente autenticado, com um passageiro por vaga."""
     return reserva_service.criar_reserva(
-        id_cliente=cliente["id"],
+        id_cliente=cliente["id_cliente"],
         id_excursao=dados.id_excursao,
         qtd_vagas=dados.qtd_vagas,
         passageiros=[p.model_dump() for p in dados.passageiros],
@@ -38,7 +38,7 @@ def criar_reserva(
 @router.get("/api/reservas/minhas")
 def listar_minhas(cliente: dict = Depends(get_current_cliente)):
     """Lista as reservas do cliente autenticado com status e destino."""
-    return reserva_service.listar_minhas(cliente["id"])
+    return reserva_service.listar_minhas(cliente["id_cliente"])
 
 
 @router.patch("/api/reservas/{id_reserva}/cancelar")
@@ -47,4 +47,4 @@ def cancelar_reserva(
     cliente: dict = Depends(get_current_cliente),
 ):
     """Cancela uma reserva do cliente, validando o prazo de cancelamento."""
-    return reserva_service.cancelar_reserva(id_cliente=cliente["id"], id_reserva=id_reserva)
+    return reserva_service.cancelar_reserva(id_cliente=cliente["id_cliente"], id_reserva=id_reserva)

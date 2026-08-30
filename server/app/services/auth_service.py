@@ -1,11 +1,8 @@
 # ===========================================================================
 # IMF TURISMO — serviço de autenticação
-# Cadastro e login via Supabase Auth (nota de arquitetura da seção 1 do
-# PRODUCT.md): a senha vive no auth.users, nunca em texto puro no nosso banco.
-#
-# No cadastro, além de criar o auth.user, gravamos a linha em `cliente`
-# vinculada a ele via id_auth_user — essa gravação é feita aqui no back-end
-# (seção 3.3), nunca confiando apenas no front-end.
+# Cadastro e login usando o schema real, que armazena senha_hash nas tabelas
+# cliente/administrador (não usa Supabase Auth para essas entidades). As
+# senhas são hasheadas com bcrypt (nunca texto puro) e a sessão usa JWT.
 # ===========================================================================
 
 from typing import Any
@@ -15,55 +12,79 @@ from app.core.exceptions import (
     CredenciaisInvalidasError,
     UsuarioJaCadastradoError,
 )
+from app.core.security import criar_token, gerar_hash_senha, verificar_senha
 
 
 def cadastrar_cliente(dados: dict[str, Any]) -> dict[str, Any]:
-    """Cria o usuário no Supabase Auth e o vínculo na tabela `cliente`.
+    """Cria um cliente com a senha hasheada.
 
     Raises:
-        UsuarioJaCadastradoError: se o e-mail já existir no Supabase Auth.
+        UsuarioJaCadastradoError: CPF ou e-mail já existentes (colunas UNIQUE).
     """
-    auth = supabase.get_supabase().auth
-
     try:
-        resposta = auth.sign_up({"email": dados["email"], "password": dados["senha"]})
-    except Exception:  # noqa: BLE001 - fronteira com Supabase: falhas de sign_up
-        # (e-mail duplicado, validação de senha, etc.) são tratadas como conflito.
-        raise UsuarioJaCadastradoError("E-mail ja cadastrado") from None
+        linha = (
+            supabase.get_supabase()
+            .table("cliente")
+            .insert(
+                {
+                    "nome_cliente": dados["nome"],
+                    "cpf": dados["cpf"],
+                    "email": dados["email"],
+                    "telefone": dados["telefone"],
+                    "endereco": dados["endereco"],
+                    "senha_hash": gerar_hash_senha(dados["senha"]),
+                }
+            )
+            .execute()
+            .data[0]
+        )
+    except Exception:  # noqa: BLE001 - fronteira com Supabase: violação de UNIQUE
+        # (CPF/e-mail duplicados) é tratada como conflito no cadastro.
+        raise UsuarioJaCadastradoError("CPF ou e-mail ja cadastrado") from None
 
-    usuario = resposta.user
-
-    # Cria a linha de cliente ligada ao auth.user recém-criado.
-    supabase.get_supabase().table("cliente").insert(
-        {
-            "id_auth_user": usuario["id"],
-            "nome": dados["nome"],
-            "cpf": dados["cpf"],
-            "email": dados["email"],
-            "telefone": dados["telefone"],
-            "endereco": dados["endereco"],
-        }
-    ).execute()
-
-    return {"id_auth_user": usuario["id"], "email": dados["email"]}
+    return {"id_cliente": linha["id_cliente"], "email": linha["email"]}
 
 
 def login(dados: dict[str, Any]) -> dict[str, Any]:
-    """Autentica o usuário e retorna o token de acesso do Supabase Auth.
+    """Autentica o cliente por e-mail + senha_hash e retorna um JWT.
 
     Raises:
-        CredenciaisInvalidasError: e-mail/senha incorretos.
+        CredenciaisInvalidasError: e-mail inexistente ou senha incorreta.
     """
-    auth = supabase.get_supabase().auth
+    cliente = (
+        supabase.get_supabase()
+        .table("cliente")
+        .select("*")
+        .eq("email", dados["email"])
+        .maybe_single()
+        .execute()
+        .data
+    )
+    if cliente is None or not verificar_senha(dados["senha"], cliente["senha_hash"]):
+        # Mesma mensagem para usuário inexistente ou senha errada (não vaza info).
+        raise CredenciaisInvalidasError("E-mail ou senha invalidos")
 
-    try:
-        resposta = auth.sign_in_with_password({"email": dados["email"], "password": dados["senha"]})
-    except Exception:  # noqa: BLE001 - fronteira com Supabase: credenciais
-        # inválidas ou serviço indisponível são tratadas como não autorizado.
-        raise CredenciaisInvalidasError("E-mail ou senha invalidos") from None
+    token = criar_token(usuario_id=cliente["id_cliente"], papel="cliente")
+    return {"access_token": token, "token_type": "bearer"}
 
-    sessao = resposta.session
-    return {
-        "access_token": sessao["access_token"],
-        "token_type": "bearer",
-    }
+
+def login_admin(dados: dict[str, Any]) -> dict[str, Any]:
+    """Autentica o administrador por login_admin + senha_hash e retorna um JWT.
+
+    Raises:
+        CredenciaisInvalidasError: login inexistente ou senha incorreta.
+    """
+    admin = (
+        supabase.get_supabase()
+        .table("administrador")
+        .select("*")
+        .eq("login_admin", dados["login"])
+        .maybe_single()
+        .execute()
+        .data
+    )
+    if admin is None or not verificar_senha(dados["senha"], admin["senha_admin"]):
+        raise CredenciaisInvalidasError("Login ou senha invalidos")
+
+    token = criar_token(usuario_id=admin["id_admin"], papel="admin")
+    return {"access_token": token, "token_type": "bearer"}
