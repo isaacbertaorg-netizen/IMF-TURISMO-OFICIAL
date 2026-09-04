@@ -122,7 +122,9 @@ def listar_clientes() -> list[dict[str, Any]]:
     return (
         supabase.get_supabase()
         .table("cliente")
-        .select("id_cliente, nome_cliente, cpf, email, telefone, endereco")
+        .select(
+            "id_cliente, nome_cliente, cpf, email, telefone, cidade, uf, data_cadastro"
+        )
         .order("nome_cliente")
         .execute()
         .data

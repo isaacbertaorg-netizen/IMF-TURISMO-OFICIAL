@@ -31,7 +31,13 @@ def cadastrar_cliente(dados: dict[str, Any]) -> dict[str, Any]:
                     "cpf": dados["cpf"],
                     "email": dados["email"],
                     "telefone": dados["telefone"],
-                    "endereco": dados["endereco"],
+                    "cep": dados["cep"],
+                    "logradouro": dados["logradouro"],
+                    "numero": dados["numero"],
+                    "complemento": dados.get("complemento") or "",
+                    "bairro": dados["bairro"],
+                    "cidade": dados["cidade"],
+                    "uf": dados["uf"],
                     "senha_hash": gerar_hash_senha(dados["senha"]),
                 }
             )

@@ -42,6 +42,12 @@ class ReservaJaCanceladaError(DomainError):
     message = "A reserva ja esta cancelada"
 
 
+class PassageirosDivergentesError(DomainError):
+    # 422: a lista de passageiros deve ter exatamente um item por vaga.
+    status_code = 422
+    message = "A quantidade de passageiros deve ser igual a qtd_vagas"
+
+
 class CredenciaisInvalidasError(DomainError):
     status_code = 401
     message = "Credenciais invalidas"

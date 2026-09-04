@@ -32,13 +32,16 @@ def listar_excursoes():
 @router.post("/excursoes", status_code=201)
 def criar_excursao(dados: ExcursaoCreate, admin: dict = Depends(get_current_admin)):
     """Cadastra uma nova excursão vinculada ao administrador autenticado."""
-    return admin_service.criar_excursao(id_admin=admin["id_admin"], dados=dados.model_dump())
+    # mode="json" serializa as datas para ISO (o client real não aceita date).
+    return admin_service.criar_excursao(
+        id_admin=admin["id_admin"], dados=dados.model_dump(mode="json")
+    )
 
 
 @router.put("/excursoes/{id_excursao}")
 def atualizar_excursao(id_excursao: int, dados: ExcursaoUpdate):
     """Edita os campos informados de uma excursão existente."""
-    return admin_service.atualizar_excursao(id_excursao, dados.model_dump())
+    return admin_service.atualizar_excursao(id_excursao, dados.model_dump(mode="json"))
 
 
 @router.delete("/excursoes/{id_excursao}", status_code=204)

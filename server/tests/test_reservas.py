@@ -109,7 +109,8 @@ def test_minhas_reservas_lista_apenas_do_cliente(client, fake_supabase, cliente_
                 "cpf": "99999999999",
                 "email": "outro@teste.com",
                 "telefone": "61988888888",
-                "endereco": "Rua B",
+                "cidade": "Brasilia",
+                "uf": "DF",
             }
         ],
     )
