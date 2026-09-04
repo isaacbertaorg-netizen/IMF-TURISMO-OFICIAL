@@ -11,7 +11,13 @@ DADOS_CADASTRO = {
     "cpf": "123.456.789-01",
     "email": "maria@teste.com",
     "telefone": "(61) 99999-0000",
-    "endereco": "SQN 302, Bloco A - Brasilia/DF",
+    "cep": "72876-123",
+    "logradouro": "Quadra M Lote 22",
+    "numero": "22",
+    "complemento": "Casa 2",
+    "bairro": "Parque Esplanada 1",
+    "cidade": "Valparaíso de Goiás",
+    "uf": "go",
     "senha": "segredo123",
     "confirmar_senha": "segredo123",
 }
@@ -24,8 +30,10 @@ def test_cadastro_cria_cliente_com_senha_hasheada(client, fake_supabase):
 
     clientes = fake_supabase.table("cliente").select("*").execute().data
     assert len(clientes) == 1
-    # CPF normalizado (apenas dígitos) na gravação.
+    # CPF e CEP normalizados (apenas dígitos) e UF em maiúsculas na gravação.
     assert clientes[0]["cpf"] == "12345678901"
+    assert clientes[0]["cep"] == "72876123"
+    assert clientes[0]["uf"] == "GO"
     # A senha nunca é armazenada em texto puro (RNF04).
     assert clientes[0]["senha_hash"].startswith("$2b$")
     assert bcrypt.checkpw("segredo123".encode(), clientes[0]["senha_hash"].encode())

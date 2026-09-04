@@ -21,6 +21,7 @@ class ExcursaoCreate(BaseModel):
     descricao_roteiro: str = Field(min_length=10)
     itens_inclusos: str = Field(default="", max_length=1000)
     prazo_cancelamento_dias: int = Field(default=30, ge=0)
+    imagem_url: str | None = Field(default=None, max_length=2048)
 
     @model_validator(mode="after")
     def validar_periodo(self):
@@ -42,6 +43,7 @@ class ExcursaoUpdate(BaseModel):
     descricao_roteiro: str | None = Field(default=None, min_length=10)
     itens_inclusos: str | None = Field(default=None, max_length=1000)
     prazo_cancelamento_dias: int | None = Field(default=None, ge=0)
+    imagem_url: str | None = Field(default=None, max_length=2048)
 
     @model_validator(mode="after")
     def validar_periodo(self):

@@ -10,17 +10,25 @@
 # do banco atualizar o estoque (evita dupla contagem).
 # ===========================================================================
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from app.core import supabase
 from app.core.exceptions import (
+    PassageirosDivergentesError,
     PrazoCancelamentoExpiradoError,
     RecursoNaoEncontradoError,
     ReservaJaCanceladaError,
     VagasInsuficientesError,
 )
 from app.services.excursao_service import obter_excursao
+
+# Fuso da regra de negócio: o prazo de cancelamento conta dias corridos no
+# calendário de Brasília. Sem horário de verão desde 2019, UTC-3 é fixo — por
+# isso o offset fixo em vez de zoneinfo (sem dependência de banco tzdata).
+# Usar a data UTC aqui trocaria o dia à noite (21h59 em Brasília = dia
+# seguinte em UTC), bloqueando cancelamento dentro do prazo.
+FUSO_BRASILIA = timezone(timedelta(hours=-3))
 
 
 def criar_reserva(
@@ -81,11 +89,23 @@ def listar_minhas(id_cliente: int) -> list[dict[str, Any]]:
         .data
     )
 
-    # Enriquece cada reserva com destino e nome da excursão para a listagem.
+    # Enriquece cada reserva com dados da excursão (para prazo de
+    # cancelamento no front) e a lista de passageiros (para edição).
     for reserva in reservas:
         excursao = obter_excursao(reserva["id_excursao"])
         reserva["excursao_destino"] = excursao["destino"]
         reserva["excursao_nome"] = excursao["nome_excursao"]
+        reserva["data_ida"] = excursao["data_ida"]
+        reserva["data_volta"] = excursao["data_volta"]
+        reserva["prazo_cancelamento_dias"] = excursao.get("prazo_cancelamento_dias", 0)
+        reserva["passageiros"] = (
+            supabase.get_supabase()
+            .table("passageiro")
+            .select("id_passageiro, nome_passageiro, cpf, data_nascimento")
+            .eq("id_reserva", reserva["id_reserva"])
+            .execute()
+            .data
+        )
 
     return reservas
 
@@ -121,8 +141,8 @@ def cancelar_reserva(id_cliente: int, id_reserva: int, hoje: date | None = None)
             mas o back-end valida de novo — seção 3.5).
     """
     # `hoje` é injetável para permitir testes determinísticos de prazo.
-    # Usa a data local (fuso do servidor), referência de negócio do prazo.
-    hoje = hoje or datetime.now(timezone.utc).date()
+    # Usa a data de Brasília (fuso do negócio), não a data UTC do servidor.
+    hoje = hoje or datetime.now(FUSO_BRASILIA).date()
 
     reserva = (
         supabase.get_supabase()
@@ -149,3 +169,44 @@ def cancelar_reserva(id_cliente: int, id_reserva: int, hoje: date | None = None)
         raise PrazoCancelamentoExpiradoError()
 
     return _cancelar_comum(reserva)
+
+
+def atualizar_passageiros(
+    id_cliente: int, id_reserva: int, passageiros: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """Substitui os passageiros de uma reserva (botão "continuar editando").
+
+    A quantidade de vagas não muda, então o estoque não é tocado — apenas os
+    dados dos passageiros são trocados. A lista deve ter exatamente qtd_vagas
+    itens, um por vaga contratada.
+
+    Raises:
+        RecursoNaoEncontradoError: reserva inexistente ou de outro cliente.
+        ReservaJaCanceladaError: reserva já cancelada não pode ser editada.
+        PassageirosDivergentesError: lista com tamanho diferente de qtd_vagas.
+    """
+    reserva = (
+        supabase.get_supabase()
+        .table("reserva")
+        .select("*")
+        .eq("id_reserva", id_reserva)
+        .maybe_single()
+        .execute()
+        .data
+    )
+    # Reserva de outro cliente é tratada como inexistente (seção 6.2).
+    if reserva is None or reserva["id_cliente"] != id_cliente:
+        raise RecursoNaoEncontradoError("Reserva nao encontrada")
+
+    if reserva["status"] == "cancelada":
+        raise ReservaJaCanceladaError()
+
+    if len(passageiros) != reserva["qtd_vagas"]:
+        raise PassageirosDivergentesError()
+
+    supabase.get_supabase().table("passageiro").delete().eq("id_reserva", id_reserva).execute()
+    supabase.get_supabase().table("passageiro").insert(
+        [{"id_reserva": id_reserva, **passageiro} for passageiro in passageiros]
+    ).execute()
+
+    return reserva

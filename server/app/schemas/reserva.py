@@ -45,3 +45,13 @@ class ReservaCreate(BaseModel):
         if len(self.passageiros) != self.qtd_vagas:
             raise ValueError("A quantidade de passageiros deve ser igual a qtd_vagas")
         return self
+
+
+class PassageirosUpdate(BaseModel):
+    """Substituição da lista de passageiros de uma reserva existente.
+
+    A quantidade continua vinculada às vagas contratadas (sem alterar o
+    estoque), então a lista deve ter exatamente qtd_vagas itens.
+    """
+
+    passageiros: list[PassageiroCreate] = Field(min_length=1)

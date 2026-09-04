@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, Request
 from app.config import settings
 from app.core.auth import get_current_cliente
 from app.core.rate_limit import limiter
-from app.schemas.reserva import ReservaCreate
+from app.schemas.reserva import PassageirosUpdate, ReservaCreate
 from app.services import reserva_service
 
 router = APIRouter(tags=["reservas"])
@@ -31,7 +31,9 @@ def criar_reserva(
         id_cliente=cliente["id_cliente"],
         id_excursao=dados.id_excursao,
         qtd_vagas=dados.qtd_vagas,
-        passageiros=[p.model_dump() for p in dados.passageiros],
+        # mode="json" serializa as datas para ISO: o client real do Supabase
+        # (httpx) não aceita objetos date no payload (500 em produção).
+        passageiros=[p.model_dump(mode="json") for p in dados.passageiros],
     )
 
 
@@ -48,3 +50,17 @@ def cancelar_reserva(
 ):
     """Cancela uma reserva do cliente, validando o prazo de cancelamento."""
     return reserva_service.cancelar_reserva(id_cliente=cliente["id_cliente"], id_reserva=id_reserva)
+
+
+@router.put("/api/reservas/{id_reserva}/passageiros")
+def atualizar_passageiros(
+    id_reserva: int,
+    dados: PassageirosUpdate,
+    cliente: dict = Depends(get_current_cliente),
+):
+    """Substitui os passageiros da reserva (continuar editando, seção 3.5)."""
+    return reserva_service.atualizar_passageiros(
+        id_cliente=cliente["id_cliente"],
+        id_reserva=id_reserva,
+        passageiros=[p.model_dump(mode="json") for p in dados.passageiros],
+    )

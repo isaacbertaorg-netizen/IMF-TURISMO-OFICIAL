@@ -67,7 +67,8 @@ def test_dashboard_retorna_totais(client, fake_supabase, headers_admin):
                 "cpf": "1" * 11,
                 "email": "a@b.com",
                 "telefone": "61",
-                "endereco": "x",
+                "cidade": "Brasilia",
+                "uf": "DF",
             }
         ],
     )
@@ -80,7 +81,8 @@ def test_dashboard_retorna_totais(client, fake_supabase, headers_admin):
                 "cpf": "2" * 11,
                 "email": "b@b.com",
                 "telefone": "61",
-                "endereco": "y",
+                "cidade": "Goiania",
+                "uf": "GO",
             }
         ],
     )
@@ -234,7 +236,8 @@ def test_listar_clientes_sem_dados_sensiveis(client, fake_supabase, headers_admi
                 "cpf": "1" * 11,
                 "email": "maria@x.com",
                 "telefone": "6199",
-                "endereco": "Rua X",
+                "cidade": "Brasilia",
+                "uf": "DF",
                 "senha_hash": "hash-secreto",
             }
         ],

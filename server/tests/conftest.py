@@ -6,6 +6,7 @@
 # Permite rodar a suíte sem credenciais reais e com dados determinísticos.
 # ===========================================================================
 
+import json
 import re
 
 import pytest
@@ -166,6 +167,10 @@ class FakeInsert:
             nova = dict(r)
             pk = PRIMARY_KEYS.get(self._table, "id")
             nova.setdefault(pk, self._fake._next_id(self._table))
+            # O client real serializa o payload via JSON estrito (httpx): um
+            # objeto date estouraria 500 em produção, então o fake rejeita
+            # para a suíte capturar essa classe de bug (ex.: reserva real).
+            json.dumps(nova)
             # Simula violação de coluna UNIQUE (ex.: CPF/e-mail duplicados).
             for col in UNIQUE_CONSTRAINTS.get(self._table, []):
                 if nova.get(col) is not None and self._fake._existe(self._table, col, nova[col]):
@@ -302,7 +307,13 @@ def cliente_token(fake_supabase):
                 "cpf": "12345678901",
                 "email": "cliente@teste.com",
                 "telefone": "61999999999",
-                "endereco": "Rua A, 1 - Brasilia/DF",
+                "cep": "70000000",
+                "logradouro": "Rua A",
+                "numero": "1",
+                "complemento": "",
+                "bairro": "Centro",
+                "cidade": "Brasilia",
+                "uf": "DF",
                 "senha_hash": "fake-hash",
             }
         ],
