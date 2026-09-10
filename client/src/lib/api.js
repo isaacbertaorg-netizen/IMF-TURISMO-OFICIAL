@@ -1,11 +1,13 @@
 // ===========================================================================
 // IMF TURISMO — cliente HTTP da API
-// Usa VITE_API_BASE_URL (ver .env.example). Fallback para localhost:8000.
+// Usa VITE_API_BASE_URL (ver .env.example). Sem a variável: mesma origem
+// (/api, caso do Vercel com back junto) em produção, localhost em dev.
 // ===========================================================================
 
 import axios from 'axios'
 
-const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+const baseURL =
+  import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:8000')
 
 export const api = axios.create({
   baseURL,
