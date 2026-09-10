@@ -1,0 +1,6 @@
+# ===========================================================================
+# IMF TURISMO — dependências da função serverless (Vercel Python Runtime)
+# Reaproveita server/requirements.txt (já inclui o adaptador Mangum).
+# ===========================================================================
+
+-r server/requirements.txt

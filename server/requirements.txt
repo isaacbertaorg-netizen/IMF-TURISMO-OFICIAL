@@ -24,6 +24,8 @@ slowapi
 bcrypt
 # Geração/validação de token JWT de sessão própria.
 PyJWT
+# Adaptador ASGI->Lambda para rodar a API como serverless no Vercel.
+mangum
 
 # --- Testes e desenvolvimento ---
 pytest
