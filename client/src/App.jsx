@@ -9,7 +9,7 @@ import { BrowserRouter, Link, Route, Routes } from 'react-router-dom'
 import styled from 'styled-components'
 import AdminLayout from './components/AdminLayout.jsx'
 import Navbar from './components/Navbar.jsx'
-import { AdminRoute, ProtectedRoute } from './components/ProtectedRoute.jsx'
+import { AdminRoute, ClienteRoute, ProtectedRoute } from './components/ProtectedRoute.jsx'
 import { AuthProvider } from './lib/auth.jsx'
 import AdminClientes from './pages/AdminClientes.jsx'
 import AdminDashboard from './pages/AdminDashboard.jsx'
@@ -71,9 +71,9 @@ function App() {
           <Route
             path="/perfil"
             element={
-              <ProtectedRoute>
+              <ClienteRoute>
                 <Perfil />
-              </ProtectedRoute>
+              </ClienteRoute>
             }
           />
           <Route path="/admin/login" element={<AdminLogin />} />

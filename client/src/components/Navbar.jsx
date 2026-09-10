@@ -83,8 +83,11 @@ const Avatar = styled.button`
 `
 
 function Navbar() {
-  const { autenticado } = useAuth()
+  const { autenticado, ehAdmin } = useAuth()
   const navigate = useNavigate()
+  // Admin não tem perfil de cliente (GET /api/perfil exige token de cliente),
+  // então o link some para ele e entra o atalho de volta ao painel.
+  const destinoAvatar = !autenticado ? '/login' : ehAdmin ? '/admin/dashboard' : '/perfil'
   return (
     <Bar>
       <Inner>
@@ -102,13 +105,14 @@ function Navbar() {
             Excursões
           </NavItem>
           <NavItem to="/minhas-reservas">Minhas Reservas</NavItem>
-          <NavItem to="/perfil">Perfil</NavItem>
+          {!ehAdmin && <NavItem to="/perfil">Perfil</NavItem>}
+          {ehAdmin && <NavItem to="/admin/dashboard">Painel Admin</NavItem>}
         </Nav>
         <Avatar
           type="button"
-          aria-label={autenticado ? 'Meu perfil' : 'Entrar'}
-          title={autenticado ? 'Meu perfil' : 'Entrar'}
-          onClick={() => navigate(autenticado ? '/perfil' : '/login')}
+          aria-label={!autenticado ? 'Entrar' : ehAdmin ? 'Painel administrativo' : 'Meu perfil'}
+          title={!autenticado ? 'Entrar' : ehAdmin ? 'Painel administrativo' : 'Meu perfil'}
+          onClick={() => navigate(destinoAvatar)}
         >
           {autenticado ? '●' : '○'}
         </Avatar>

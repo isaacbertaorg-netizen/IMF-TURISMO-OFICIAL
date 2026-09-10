@@ -26,3 +26,16 @@ export function AdminRoute({ children }) {
   }
   return children
 }
+
+export function ClienteRoute({ children }) {
+  const { autenticado, ehAdmin } = useAuth()
+  const location = useLocation()
+  if (!autenticado) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  }
+  // Administrador não tem perfil de cliente: volta para o painel.
+  if (ehAdmin) {
+    return <Navigate to="/admin/dashboard" replace />
+  }
+  return children
+}
