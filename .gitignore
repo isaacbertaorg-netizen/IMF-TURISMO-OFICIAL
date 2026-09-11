@@ -58,3 +58,6 @@ Thumbs.db
 # Arquivo de regras locais do desenvolvedor — nunca versionar
 # ---------------------------------------------------------------------------
 .gitignore.local
+
+.vercel
+.env*
