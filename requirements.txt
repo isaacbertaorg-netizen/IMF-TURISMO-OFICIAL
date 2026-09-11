@@ -1,6 +1,18 @@
 # ===========================================================================
 # IMF TURISMO — dependências da função serverless (Vercel Python Runtime)
-# Reaproveita server/requirements.txt (já inclui o adaptador Mangum).
+# Espelha server/requirements.txt (includes -r não são suportados no Vercel).
 # ===========================================================================
 
--r server/requirements.txt
+fastapi
+uvicorn[standard]
+pydantic
+email-validator
+supabase
+python-dotenv
+slowapi
+bcrypt
+PyJWT
+mangum
+pytest
+httpx
+ruff
