@@ -13,6 +13,3 @@ slowapi
 bcrypt
 PyJWT
 mangum
-pytest
-httpx
-ruff
