@@ -63,9 +63,9 @@ function App() {
           <Route
             path="/minhas-reservas"
             element={
-              <ProtectedRoute>
+              <ClienteRoute>
                 <MinhasReservas />
-              </ProtectedRoute>
+              </ClienteRoute>
             }
           />
           <Route
