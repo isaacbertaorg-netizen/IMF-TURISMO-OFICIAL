@@ -6,8 +6,12 @@
 
 import axios from 'axios'
 
+// Todas as chamadas do front já incluem o prefixo `/api` (ex.: `/api/login`).
+// Por isso, em produção a base é a mesma origem (string vazia): usar `/api`
+// aqui duplicaria o prefixo (`/api/api/...` → 404). Em dev, sem a variável,
+// cai no back local.
 const baseURL =
-  import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:8000')
+  import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '' : 'http://localhost:8000')
 
 export const api = axios.create({
   baseURL,
