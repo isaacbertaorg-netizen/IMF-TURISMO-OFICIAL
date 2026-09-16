@@ -45,14 +45,8 @@ def listar_excursoes(
 
 def obter_excursao(id_excursao: int) -> dict[str, Any]:
     """Busca uma excursão pelo id, levantando 404 se não existir."""
-    excursao = (
-        supabase.get_supabase()
-        .table("excursao")
-        .select("*")
-        .eq("id_excursao", id_excursao)
-        .maybe_single()
-        .execute()
-        .data
+    excursao = supabase.buscar_um(
+        supabase.get_supabase().table("excursao").select("*").eq("id_excursao", id_excursao)
     )
     if excursao is None:
         raise RecursoNaoEncontradoError("Excursao nao encontrada")

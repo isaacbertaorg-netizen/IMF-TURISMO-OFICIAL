@@ -31,14 +31,11 @@ _CAMPOS_EDITAVEIS = {
 
 def obter_perfil(id_cliente: int) -> dict[str, Any]:
     """Retorna os dados cadastrais do cliente autenticado, sem a senha."""
-    perfil = (
+    perfil = supabase.buscar_um(
         supabase.get_supabase()
         .table("cliente")
         .select(_COLUNAS_PERFIL)
         .eq("id_cliente", id_cliente)
-        .maybe_single()
-        .execute()
-        .data
     )
     if perfil is None:
         raise RecursoNaoEncontradoError("Cliente nao encontrado")

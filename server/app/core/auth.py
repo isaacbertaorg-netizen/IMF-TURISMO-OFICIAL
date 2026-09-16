@@ -51,14 +51,8 @@ def get_current_cliente(
     if payload.get("papel") != "cliente":
         raise HTTPException(status_code=403, detail="Token nao corresponde a um cliente")
 
-    cliente = (
-        supabase.get_supabase()
-        .table("cliente")
-        .select("*")
-        .eq("id_cliente", int(payload["sub"]))
-        .maybe_single()
-        .execute()
-        .data
+    cliente = supabase.buscar_um(
+        supabase.get_supabase().table("cliente").select("*").eq("id_cliente", int(payload["sub"]))
     )
     if cliente is None:
         raise HTTPException(status_code=401, detail="Cliente nao encontrado")
@@ -80,14 +74,11 @@ def get_current_admin(
     if payload.get("papel") != "admin":
         raise HTTPException(status_code=403, detail="Acesso restrito a administradores")
 
-    admin = (
+    admin = supabase.buscar_um(
         supabase.get_supabase()
         .table("administrador")
         .select("*")
         .eq("id_admin", int(payload["sub"]))
-        .maybe_single()
-        .execute()
-        .data
     )
     if admin is None:
         raise HTTPException(status_code=401, detail="Administrador nao encontrado")

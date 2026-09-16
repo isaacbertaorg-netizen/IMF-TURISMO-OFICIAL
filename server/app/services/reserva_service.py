@@ -144,14 +144,8 @@ def cancelar_reserva(id_cliente: int, id_reserva: int, hoje: date | None = None)
     # Usa a data de Brasília (fuso do negócio), não a data UTC do servidor.
     hoje = hoje or datetime.now(FUSO_BRASILIA).date()
 
-    reserva = (
-        supabase.get_supabase()
-        .table("reserva")
-        .select("*")
-        .eq("id_reserva", id_reserva)
-        .maybe_single()
-        .execute()
-        .data
+    reserva = supabase.buscar_um(
+        supabase.get_supabase().table("reserva").select("*").eq("id_reserva", id_reserva)
     )
     if reserva is None:
         raise RecursoNaoEncontradoError("Reserva nao encontrada")
@@ -185,14 +179,8 @@ def atualizar_passageiros(
         ReservaJaCanceladaError: reserva já cancelada não pode ser editada.
         PassageirosDivergentesError: lista com tamanho diferente de qtd_vagas.
     """
-    reserva = (
-        supabase.get_supabase()
-        .table("reserva")
-        .select("*")
-        .eq("id_reserva", id_reserva)
-        .maybe_single()
-        .execute()
-        .data
+    reserva = supabase.buscar_um(
+        supabase.get_supabase().table("reserva").select("*").eq("id_reserva", id_reserva)
     )
     # Reserva de outro cliente é tratada como inexistente (seção 6.2).
     if reserva is None or reserva["id_cliente"] != id_cliente:
