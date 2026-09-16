@@ -104,7 +104,7 @@ function Navbar() {
           <NavItem to="/" end>
             Excursões
           </NavItem>
-          <NavItem to="/minhas-reservas">Minhas Reservas</NavItem>
+          {!ehAdmin && <NavItem to="/minhas-reservas">Minhas Reservas</NavItem>}
           {!ehAdmin && <NavItem to="/perfil">Perfil</NavItem>}
           {ehAdmin && <NavItem to="/admin/dashboard">Painel Admin</NavItem>}
         </Nav>
