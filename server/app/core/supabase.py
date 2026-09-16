@@ -10,6 +10,8 @@
 # precisa de credenciais reais para rodar a suíte.
 # ===========================================================================
 
+from typing import Any
+
 from supabase import Client, create_client
 
 from app.config import settings
@@ -35,3 +37,16 @@ def get_supabase() -> Client:
         _client = create_client(settings.supabase_url, settings.supabase_service_role_key)
 
     return _client
+
+
+def buscar_um(consulta) -> dict[str, Any] | None:
+    """Executa um select com filtro e retorna a primeira linha ou None.
+
+    Não usa `maybe_single()`: no supabase-py 2.31 o `.execute()` dessa
+    cadeia retorna None (e não uma resposta com data=None) quando não há
+    linhas, o que quebrava login/perfil/excursão com 500. Select simples
+    + primeira linha tem o mesmo efeito em qualquer versão do client.
+    """
+    resposta = consulta.execute()
+    linhas = resposta.data if resposta is not None else []
+    return linhas[0] if linhas else None

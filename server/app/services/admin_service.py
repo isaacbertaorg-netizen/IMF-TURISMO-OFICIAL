@@ -40,14 +40,8 @@ def criar_excursao(id_admin: int, dados: dict[str, Any]) -> dict[str, Any]:
 
 def atualizar_excursao(id_excursao: int, dados: dict[str, Any]) -> dict[str, Any]:
     """Atualiza campos informados de uma excursão existente."""
-    excursao = (
-        supabase.get_supabase()
-        .table("excursao")
-        .select("*")
-        .eq("id_excursao", id_excursao)
-        .maybe_single()
-        .execute()
-        .data
+    excursao = supabase.buscar_um(
+        supabase.get_supabase().table("excursao").select("*").eq("id_excursao", id_excursao)
     )
     if excursao is None:
         raise RecursoNaoEncontradoError("Excursao nao encontrada")
@@ -99,14 +93,8 @@ def cancelar_reserva_manual(id_reserva: int) -> dict[str, Any]:
     situações excepcionais. O trigger do banco devolve as vagas."""
     from app.services.reserva_service import _cancelar_comum
 
-    reserva = (
-        supabase.get_supabase()
-        .table("reserva")
-        .select("*")
-        .eq("id_reserva", id_reserva)
-        .maybe_single()
-        .execute()
-        .data
+    reserva = supabase.buscar_um(
+        supabase.get_supabase().table("reserva").select("*").eq("id_reserva", id_reserva)
     )
     if reserva is None:
         raise RecursoNaoEncontradoError("Reserva nao encontrada")

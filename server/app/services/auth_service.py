@@ -57,14 +57,8 @@ def login(dados: dict[str, Any]) -> dict[str, Any]:
     Raises:
         CredenciaisInvalidasError: e-mail inexistente ou senha incorreta.
     """
-    cliente = (
-        supabase.get_supabase()
-        .table("cliente")
-        .select("*")
-        .eq("email", dados["email"])
-        .maybe_single()
-        .execute()
-        .data
+    cliente = supabase.buscar_um(
+        supabase.get_supabase().table("cliente").select("*").eq("email", dados["email"])
     )
     if cliente is None or not verificar_senha(dados["senha"], cliente["senha_hash"]):
         # Mesma mensagem para usuário inexistente ou senha errada (não vaza info).
@@ -80,14 +74,8 @@ def login_admin(dados: dict[str, Any]) -> dict[str, Any]:
     Raises:
         CredenciaisInvalidasError: login inexistente ou senha incorreta.
     """
-    admin = (
-        supabase.get_supabase()
-        .table("administrador")
-        .select("*")
-        .eq("login_admin", dados["login"])
-        .maybe_single()
-        .execute()
-        .data
+    admin = supabase.buscar_um(
+        supabase.get_supabase().table("administrador").select("*").eq("login_admin", dados["login"])
     )
     if admin is None or not verificar_senha(dados["senha"], admin["senha_admin"]):
         raise CredenciaisInvalidasError("Login ou senha invalidos")
