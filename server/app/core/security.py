@@ -6,6 +6,7 @@
 # assinados para sessão.
 # ===========================================================================
 
+import hashlib
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
@@ -47,3 +48,43 @@ def criar_token(usuario_id: int, papel: str) -> str:
 def validar_token(token: str) -> dict:
     """Decodifica e valida o JWT. Lança exceção se inválido ou expirado."""
     return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+
+
+def impressao_senha(senha_hash: str) -> str:
+    """Impressão digital curta do hash atual da senha.
+
+    O token de redefinição carrega essa impressão. Quando a senha é trocada,
+    o hash muda e a impressão deixa de bater — assim o token vira de uso
+    único sem precisar de tabela extra no banco.
+    """
+    return hashlib.sha256(senha_hash.encode("utf-8")).hexdigest()[:16]
+
+
+def criar_token_reset(usuario_id: int, senha_hash: str) -> str:
+    """Emite o JWT de redefinição de senha (curta duração, uso único).
+
+    O campo `tipo` diferencia este token do token de sessão: um JWT de
+    sessão nunca serve para trocar senha, e vice-versa.
+    """
+    agora = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(usuario_id),
+        "tipo": "reset_senha",
+        "impressao": impressao_senha(senha_hash),
+        "iat": agora,
+        "exp": agora + timedelta(minutes=settings.reset_token_expire_minutes),
+    }
+    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def validar_token_reset(token: str) -> dict:
+    """Valida o JWT de redefinição.
+
+    Raises:
+        jwt.InvalidTokenError: token inválido, expirado ou de outro tipo
+        (ex.: um token de sessão enviado no lugar do token de reset).
+    """
+    payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+    if payload.get("tipo") != "reset_senha":
+        raise jwt.InvalidTokenError("Token nao e de redefinicao de senha")
+    return payload

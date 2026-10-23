@@ -13,10 +13,15 @@ import { useAuth } from '../lib/auth.jsx'
 import { colors } from '../theme.js'
 import fundoLogin from '../assets/fundo-login.jpg'
 
-const Forgot = styled.span`
+const Forgot = styled(Link)`
   color: ${colors.navy};
   font-weight: 700;
   font-size: 0.8rem;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
 `
 
 const Signup = styled.p`
@@ -68,7 +73,7 @@ function Login() {
           onChange={(e) => setSenha(e.target.value)}
           autoComplete="current-password"
         />
-        <Forgot>Esqueci minha senha</Forgot>
+        <Forgot to="/esqueci-senha">Esqueci minha senha</Forgot>
         {erro && <ErrorText>{erro}</ErrorText>}
         <PrimaryButton type="submit" disabled={enviando}>
           {enviando ? 'Entrando…' : 'Entrar'}

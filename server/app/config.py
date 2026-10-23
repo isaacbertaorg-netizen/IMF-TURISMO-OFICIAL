@@ -44,6 +44,9 @@ class Settings:
         self.rate_limit_login = os.getenv("RATE_LIMIT_LOGIN", "10/minute")
         self.rate_limit_cadastro = os.getenv("RATE_LIMIT_CADASTRO", "5/minute")
         self.rate_limit_reservas = os.getenv("RATE_LIMIT_RESERVAS", "20/minute")
+        # Recuperação de senha é alvo de abuso (spam de e-mail e força bruta
+        # de token), então usa um limite próprio e mais restrito.
+        self.rate_limit_reset = os.getenv("RATE_LIMIT_RESET", "5/minute")
 
         # JWT de sessão própria. O schema atual não usa Supabase Auth para as
         # tabelas de negócio (cliente/administrador guardam senha_hash), então
@@ -53,6 +56,33 @@ class Settings:
         self.jwt_algorithm = os.getenv("JWT_ALGORITHM", "HS256")
         # Validade do token em minutos.
         self.jwt_expire_minutes = int(os.getenv("JWT_EXPIRE_MINUTES", "60"))
+
+        # --------------------- Recuperação de senha -------------------------
+        # URL pública do front-end usada para montar o link enviado por e-mail.
+        # rstrip("/") evita barra dupla quando a variável termina com "/".
+        self.app_url = os.getenv("APP_URL", "http://localhost:5173").rstrip("/")
+        # Validade do link de redefinição. Curto de propósito: reduz a janela
+        # de uso caso o e-mail seja interceptado.
+        self.reset_token_expire_minutes = int(os.getenv("RESET_TOKEN_EXPIRE_MINUTES", "30"))
+
+        # SMTP opcional (Gmail, Resend, SendGrid etc.). Sem SMTP_HOST, o link
+        # é registrado no log somente fora de produção (ver core/email.py).
+        self.smtp_host = os.getenv("SMTP_HOST", "")
+        self.smtp_port = int(os.getenv("SMTP_PORT", "587"))
+        self.smtp_user = os.getenv("SMTP_USER", "")
+        self.smtp_password = os.getenv("SMTP_PASSWORD", "")
+        self.smtp_from = os.getenv("SMTP_FROM", "") or self.smtp_user
+        self.smtp_starttls = os.getenv("SMTP_STARTTLS", "true").lower() in (
+            "true",
+            "1",
+            "yes",
+        )
+
+        # Ambiente da aplicação. O Vercel define VERCEL_ENV=production, então
+        # ele serve de fallback quando APP_ENV não está configurado.
+        self.ambiente = (os.getenv("APP_ENV") or os.getenv("VERCEL_ENV") or "development").lower()
+        # O link de redefinição só pode aparecer no log em desenvolvimento.
+        self.expor_link_reset_no_log = self.ambiente not in ("production", "producao")
 
 
 # Instância única compartilhada por toda a aplicação.

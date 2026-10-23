@@ -9,7 +9,14 @@ from fastapi import APIRouter, Request
 
 from app.config import settings
 from app.core.rate_limit import limiter
-from app.schemas.auth import LoginAdminRequest, LoginRequest, TokenResponse
+from app.schemas.auth import (
+    EsqueciSenhaRequest,
+    LoginAdminRequest,
+    LoginRequest,
+    MensagemResponse,
+    RedefinirSenhaRequest,
+    TokenResponse,
+)
 from app.schemas.cliente import CadastroCliente
 from app.services import auth_service
 
@@ -35,3 +42,17 @@ def login_admin(request: Request, dados: LoginAdminRequest):
 def cadastro(request: Request, dados: CadastroCliente):
     """Cria a conta do cliente com a senha hasheada no banco."""
     return auth_service.cadastrar_cliente(dados.model_dump())
+
+
+@router.post("/api/esqueci-senha", status_code=202, response_model=MensagemResponse)
+@limiter.limit(settings.rate_limit_reset)
+def esqueci_senha(request: Request, dados: EsqueciSenhaRequest):
+    """Envia o link de redefinição de senha (resposta sempre genérica)."""
+    return auth_service.solicitar_reset_senha(dados.email)
+
+
+@router.post("/api/redefinir-senha", response_model=MensagemResponse)
+@limiter.limit(settings.rate_limit_reset)
+def redefinir_senha(request: Request, dados: RedefinirSenhaRequest):
+    """Troca a senha usando o token de uso único recebido por e-mail."""
+    return auth_service.redefinir_senha(dados.model_dump())

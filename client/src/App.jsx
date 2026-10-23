@@ -17,11 +17,13 @@ import AdminExcursoes from './pages/AdminExcursoes.jsx'
 import AdminLogin from './pages/AdminLogin.jsx'
 import AdminReservas from './pages/AdminReservas.jsx'
 import Cadastro from './pages/Cadastro.jsx'
+import EsqueciSenha from './pages/EsqueciSenha.jsx'
 import ExcursionDetails from './pages/ExcursionDetails.jsx'
 import Home from './pages/Home.jsx'
 import Login from './pages/Login.jsx'
 import MinhasReservas from './pages/MinhasReservas.jsx'
 import Perfil from './pages/Perfil.jsx'
+import RedefinirSenha from './pages/RedefinirSenha.jsx'
 import Reserva from './pages/Reserva.jsx'
 import { colors } from './theme.js'
 
@@ -52,6 +54,8 @@ function App() {
           <Route path="/excursoes/:id" element={<ExcursionDetails />} />
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Cadastro />} />
+          <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+          <Route path="/redefinir-senha" element={<RedefinirSenha />} />
           <Route
             path="/excursoes/:id/reservar"
             element={

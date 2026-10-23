@@ -58,6 +58,13 @@ class UsuarioJaCadastradoError(DomainError):
     message = "E-mail ja cadastrado"
 
 
+class TokenResetInvalidoError(DomainError):
+    # 400: link de redefinição inválido, expirado, já usado ou de outro tipo.
+    # A mensagem é genérica para não orientar um atacante sobre o motivo.
+    status_code = 400
+    message = "Link de redefinicao invalido ou expirado"
+
+
 # ---------------------------------------------------------------------------
 # Handler único que converte DomainError em JSON com código HTTP adequado.
 # ---------------------------------------------------------------------------

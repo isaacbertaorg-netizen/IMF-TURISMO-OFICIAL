@@ -69,6 +69,13 @@ export const ErrorText = styled.p`
   text-align: center;
 `
 
+export const SuccessText = styled.p`
+  color: ${colors.successDark};
+  font-size: 0.85rem;
+  text-align: center;
+  line-height: 1.4;
+`
+
 function AuthLayout({ fundo, children }) {
   return (
     <Wrap $fundo={fundo}>
