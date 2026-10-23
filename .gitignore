@@ -1,8 +1,10 @@
 # ===========================================================================
-# IMF TURISMO — .gitignore da NUVEM (versionado)
+# IMF TURISMO — .gitignore do PROJETO (versionado)
 # Regras gerais do projeto para o repositório compartilhado.
-# Regras pessoais/locais (ex.: .opencode/, docs/) ficam no .gitignore.local,
-# que NUNCA é versionado.
+#
+# Regras pessoais desta máquina NÃO ficam aqui: use .git/info/exclude,
+# que é lido pelo Git, vive dentro de .git/ e nunca é versionado.
+# Atenção: um arquivo chamado .gitignore.local NÃO é lido pelo Git.
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
@@ -55,9 +57,14 @@ Thumbs.db
 !.vscode/extensions.json
 
 # ---------------------------------------------------------------------------
-# Arquivo de regras locais do desenvolvedor — nunca versionar
+# Arquivo de regras locais antigo.
+# ATENÇÃO: o Git não lê este arquivo. O mecanismo correto por repositório é
+# .git/info/exclude (ver cabeçalho). A linha abaixo só evita que um arquivo
+# remanescente apareça como não rastreado.
 # ---------------------------------------------------------------------------
 .gitignore.local
 
-.vercel
-.env*
+# ---------------------------------------------------------------------------
+# Vercel (vínculo local do projeto — nunca versionar)
+# ---------------------------------------------------------------------------
+.vercel/
