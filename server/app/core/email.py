@@ -19,18 +19,22 @@ logger = logging.getLogger(__name__)
 
 
 def _montar_mensagem(destino: str, nome: str, link: str) -> EmailMessage:
-    """Monta o e-mail em texto puro com o link de redefinição."""
+    """Monta o e-mail em texto puro com o link de redefinição.
+
+    O conteúdo é UTF-8 (padrão do EmailMessage): acentos e o travessão do
+    assunto são codificados corretamente no cabeçalho e no corpo.
+    """
     mensagem = EmailMessage()
-    mensagem["Subject"] = "IMF Turismo - redefinicao de senha"
+    mensagem["Subject"] = "IMF Turismo — redefinição de senha"
     mensagem["From"] = settings.smtp_from
     mensagem["To"] = destino
     mensagem.set_content(
-        f"Ola, {nome}!\n\n"
+        f"Olá, {nome}!\n\n"
         "Recebemos um pedido para redefinir a senha da sua conta na IMF Turismo.\n"
         f"Acesse o link abaixo para criar uma nova senha:\n\n{link}\n\n"
-        f"O link expira em {settings.reset_token_expire_minutes} minutos e so "
+        f"O link expira em {settings.reset_token_expire_minutes} minutos e só "
         "pode ser usado uma vez.\n\n"
-        "Se voce nao fez esse pedido, ignore esta mensagem: sua senha continua a mesma.\n"
+        "Se você não fez esse pedido, ignore esta mensagem: sua senha continua a mesma.\n"
     )
     return mensagem
 
