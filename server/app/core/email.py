@@ -63,7 +63,15 @@ def enviar_link_reset(destino: str, nome: str, link: str) -> None:
         return
 
     mensagem = _montar_mensagem(destino, nome, link)
-    with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as smtp:
+    # local_hostname fixo: o smtplib manda o nome da máquina no EHLO. Se ele
+    # tiver acento (ex.: "Isaac_Bertão"), a codificação ASCII do comando quebra
+    # com UnicodeEncodeError antes mesmo do login.
+    with smtplib.SMTP(
+        settings.smtp_host,
+        settings.smtp_port,
+        local_hostname="localhost",
+        timeout=15,
+    ) as smtp:
         if settings.smtp_starttls:
             smtp.starttls()
         if settings.smtp_user:
