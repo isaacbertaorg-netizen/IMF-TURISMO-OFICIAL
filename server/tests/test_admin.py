@@ -247,3 +247,58 @@ def test_listar_clientes_sem_dados_sensiveis(client, fake_supabase, headers_admi
     assert resp.json()[0]["nome_cliente"] == "Maria"
     # Nunca expor o hash de senha.
     assert "senha_hash" not in resp.json()[0]
+
+
+def seed_reserva(fake_supabase, status="pendente"):
+    fake_supabase.seed(
+        "reserva",
+        [
+            {
+                "id_reserva": 1,
+                "id_cliente": 1,
+                "id_excursao": 1,
+                "qtd_vagas": 2,
+                "status": status,
+                "data_reserva": "2026-08-01T10:00:00",
+            }
+        ],
+    )
+
+
+def test_confirmar_reserva_pendente(client, fake_supabase, headers_admin):
+    """Pagamento via WhatsApp: o admin confirma a reserva manualmente."""
+    seed_reserva(fake_supabase)
+
+    resp = client.patch("/api/admin/reservas/1/confirmar", headers=headers_admin)
+
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "confirmada"
+    assert fake_supabase.tables["reserva"][0]["status"] == "confirmada"
+
+
+def test_confirmar_reserva_cancelada_e_rejeitado(client, fake_supabase, headers_admin):
+    """Cancelada já devolveu as vagas ao estoque; não pode ser confirmada."""
+    seed_reserva(fake_supabase, status="cancelada")
+
+    resp = client.patch("/api/admin/reservas/1/confirmar", headers=headers_admin)
+
+    assert resp.status_code == 400
+    assert "cancelada" in resp.json()["detail"].lower()
+
+
+def test_confirmar_reserva_inexistente_retorna_404(client, headers_admin):
+    resp = client.patch("/api/admin/reservas/999/confirmar", headers=headers_admin)
+
+    assert resp.status_code == 404
+
+
+def test_confirmar_reserva_exige_admin(client, fake_supabase, cliente_token):
+    """Token de cliente não pode confirmar pagamento (seção 6.2)."""
+    seed_reserva(fake_supabase)
+
+    resp = client.patch(
+        "/api/admin/reservas/1/confirmar",
+        headers={"Authorization": f"Bearer {cliente_token}"},
+    )
+
+    assert resp.status_code == 403

@@ -62,6 +62,12 @@ def cancelar_reserva_manual(id_reserva: int):
     return admin_service.cancelar_reserva_manual(id_reserva)
 
 
+@router.patch("/reservas/{id_reserva}/confirmar")
+def confirmar_reserva(id_reserva: int):
+    """Confirma manualmente o pagamento recebido via WhatsApp (seção 3.10)."""
+    return admin_service.confirmar_reserva(id_reserva)
+
+
 @router.get("/clientes")
 def listar_clientes():
     """Lista clientes cadastrados (somente leitura, seção 3.11)."""

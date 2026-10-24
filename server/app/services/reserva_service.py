@@ -97,6 +97,8 @@ def listar_minhas(id_cliente: int) -> list[dict[str, Any]]:
         reserva["excursao_nome"] = excursao["nome_excursao"]
         reserva["data_ida"] = excursao["data_ida"]
         reserva["data_volta"] = excursao["data_volta"]
+        # Necessário para montar a mensagem de pagamento (total) no WhatsApp.
+        reserva["valor_pessoa"] = excursao["valor_pessoa"]
         reserva["prazo_cancelamento_dias"] = excursao.get("prazo_cancelamento_dias", 0)
         reserva["passageiros"] = (
             supabase.get_supabase()

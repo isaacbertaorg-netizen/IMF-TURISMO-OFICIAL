@@ -6,6 +6,7 @@
 # ===========================================================================
 
 import os
+import re
 
 from dotenv import load_dotenv
 
@@ -76,6 +77,14 @@ class Settings:
             "true",
             "1",
             "yes",
+        )
+
+        # --------------------- Pagamento por WhatsApp -----------------------
+        # Número de atendimento usado no link wa.me do pagamento. Somente
+        # dígitos, com DDI (55) + DDD + número — formato que o wa.me exige.
+        # Fica no ambiente para trocar o número sem mexer no código.
+        self.whatsapp_numero = re.sub(
+            r"\D", "", os.getenv("WHATSAPP_NUMERO", "556196389634")
         )
 
         # Ambiente da aplicação. O Vercel define VERCEL_ENV=production, então

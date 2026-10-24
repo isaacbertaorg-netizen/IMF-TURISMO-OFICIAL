@@ -7,7 +7,7 @@
 from typing import Any
 
 from app.core import supabase
-from app.core.exceptions import RecursoNaoEncontradoError
+from app.core.exceptions import RecursoNaoEncontradoError, ReservaJaCanceladaError
 
 
 def dashboard() -> dict[str, int]:
@@ -100,6 +100,36 @@ def cancelar_reserva_manual(id_reserva: int) -> dict[str, Any]:
         raise RecursoNaoEncontradoError("Reserva nao encontrada")
 
     return _cancelar_comum(reserva)
+
+
+def confirmar_reserva(id_reserva: int) -> dict[str, Any]:
+    """Confirma manualmente o pagamento de uma reserva (combinado no WhatsApp).
+
+    O pagamento acontece fora do sistema: a cliente fala com a dona da empresa
+    pelo WhatsApp e, ao receber, ela marca a reserva como confirmada aqui.
+    Reserva cancelada não pode ser confirmada (o trigger já devolveu as vagas).
+    Confirmar de novo é idempotente para não quebrar em duplo clique.
+    """
+    reserva = supabase.buscar_um(
+        supabase.get_supabase().table("reserva").select("*").eq("id_reserva", id_reserva)
+    )
+    if reserva is None:
+        raise RecursoNaoEncontradoError("Reserva nao encontrada")
+
+    if reserva["status"] == "cancelada":
+        raise ReservaJaCanceladaError()
+
+    if reserva["status"] == "confirmada":
+        return reserva
+
+    return (
+        supabase.get_supabase()
+        .table("reserva")
+        .update({"status": "confirmada"})
+        .eq("id_reserva", id_reserva)
+        .execute()
+        .data[0]
+    )
 
 
 def listar_clientes() -> list[dict[str, Any]]:

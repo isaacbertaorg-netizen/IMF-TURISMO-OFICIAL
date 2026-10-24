@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { api, formatarDataHoraLocal, mensagemErro } from '../lib/api.js'
 import { formatarCPF, cpfValido } from '../lib/mascaras.js'
+import { linkWhatsApp, mensagemPagamento } from '../lib/whatsapp.js'
 import { colors } from '../theme.js'
 
 const Page = styled.main`
@@ -133,6 +134,17 @@ const SaveButton = styled.button`
   align-self: flex-start;
 `
 
+// Link do pagamento (WhatsApp) no mesmo formato dos demais botões de ação.
+const PayLink = styled.a`
+  border-radius: 999px;
+  background-color: #128c7e;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 0.45rem 1rem;
+  text-decoration: none;
+`
+
 const Feedback = styled.p`
   color: ${colors.textMuted};
   text-align: center;
@@ -143,6 +155,13 @@ const ErrorText = styled.p`
   color: ${colors.danger};
   font-size: 0.85rem;
 `
+
+// "pendente" é o status técnico; para o cliente, significa pagamento em aberto.
+const ROTULOS_STATUS = {
+  pendente: 'Aguardando pagamento',
+  confirmada: 'Confirmada',
+  cancelada: 'Cancelada',
+}
 
 // Cancelamento só dentro do prazo: (data_ida - hoje) >= prazo (RF06).
 // Datas sem hora são tratadas no fuso local para não cair um dia.
@@ -164,13 +183,21 @@ function MinhasReservas() {
   const [passageiros, setPassageiros] = useState([])
   const [erroEdicao, setErroEdicao] = useState('')
   const [salvando, setSalvando] = useState(false)
+  const [whatsappNumero, setWhatsappNumero] = useState('')
 
   async function carregar() {
     setCarregando(true)
     setErro('')
     try {
-      const resp = await api.get('/api/reservas/minhas')
+      // O número vem da configuração pública; se falhar, o link usa o padrão.
+      const [resp, respConfig] = await Promise.all([
+        api.get('/api/reservas/minhas'),
+        api.get('/api/config').catch(() => null),
+      ])
       setReservas(resp.data)
+      if (respConfig?.data?.whatsapp_numero) {
+        setWhatsappNumero(respConfig.data.whatsapp_numero)
+      }
     } catch (err) {
       setErro(mensagemErro(err, 'Não foi possível carregar suas reservas.'))
     } finally {
@@ -262,8 +289,27 @@ function MinhasReservas() {
                     <Meta>Fora do prazo de cancelamento.</Meta>
                   )}
                 </Info>
-                <Status $status={r.status}>{r.status}</Status>
+                <Status $status={r.status}>{ROTULOS_STATUS[r.status] ?? r.status}</Status>
                 <Actions>
+                  {r.status === 'pendente' && (
+                    <PayLink
+                      href={linkWhatsApp(
+                        whatsappNumero,
+                        mensagemPagamento({
+                          id_reserva: r.id_reserva,
+                          destino: r.excursao_destino ?? r.excursao_nome,
+                          data_ida: r.data_ida,
+                          data_volta: r.data_volta,
+                          qtd_vagas: r.qtd_vagas,
+                          valor_pessoa: r.valor_pessoa,
+                        }),
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Pagar
+                    </PayLink>
+                  )}
                   {editavel && (
                     <EditButton type="button" onClick={() => (editando === r.id_reserva ? setEditando(null) : comecarEdicao(r))}>
                       {editando === r.id_reserva ? 'Fechar' : 'Editar'}

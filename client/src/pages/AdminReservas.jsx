@@ -1,7 +1,8 @@
 // ===========================================================================
 // IMF TURISMO — Gerenciamento de Reservas (seção 3.10)
-// Filtros por status + cancelamento manual pelo admin (RF06), com confirmação
-// dupla por ser ação destrutiva. Tabela enriquecida com cliente e destino.
+// Filtros por status + confirmação manual do pagamento (combinado no
+// WhatsApp) e cancelamento manual pelo admin (RF06), com confirmação por ser
+// ação sensível. Tabela enriquecida com cliente e destino.
 // ===========================================================================
 
 import { useEffect, useState } from 'react'
@@ -70,11 +71,39 @@ const DangerButton = styled.button`
   padding: 0.35rem 0.8rem;
 `
 
+const ConfirmButton = styled.button`
+  border: 0;
+  border-radius: 999px;
+  background-color: ${colors.successDark};
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.8rem;
+`
+
+const Actions = styled.div`
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+`
+
 const Feedback = styled.p`
   color: ${colors.textMuted};
 `
 
-const FILTROS = ['Todas', 'pendente', 'confirmada', 'cancelada']
+// O filtro usa o status técnico; o rótulo fala a língua do negócio.
+const FILTROS = [
+  { valor: 'Todas', rotulo: 'Todas' },
+  { valor: 'pendente', rotulo: 'Aguardando pagamento' },
+  { valor: 'confirmada', rotulo: 'Confirmadas' },
+  { valor: 'cancelada', rotulo: 'Canceladas' },
+]
+
+const ROTULOS_STATUS = {
+  pendente: 'Aguardando pagamento',
+  confirmada: 'Confirmada',
+  cancelada: 'Cancelada',
+}
 
 function AdminReservas() {
   const [filtro, setFiltro] = useState('Todas')
@@ -104,6 +133,17 @@ function AdminReservas() {
     carregar(filtro)
   }, [filtro])
 
+  async function confirmarPagamento(idReserva) {
+    // Ação positiva, mas altera o status: uma confirmação simples evita clique errado.
+    if (!window.confirm('Confirmar o pagamento desta reserva?')) return
+    try {
+      await api.patch(`/api/admin/reservas/${idReserva}/confirmar`)
+      await carregar(filtro)
+    } catch (err) {
+      window.alert(err?.response?.data?.detail ?? 'Não foi possível confirmar o pagamento.')
+    }
+  }
+
   async function cancelarManual(idReserva) {
     // Cancelamento pelo admin exige confirmação dupla (seção 2.1).
     if (!window.confirm('Cancelar manualmente esta reserva?')) return
@@ -121,8 +161,13 @@ function AdminReservas() {
       <Title>Reservas</Title>
       <Filters>
         {FILTROS.map((f) => (
-          <FilterButton key={f} type="button" $ativo={filtro === f} onClick={() => setFiltro(f)}>
-            {f}
+          <FilterButton
+            key={f.valor}
+            type="button"
+            $ativo={filtro === f.valor}
+            onClick={() => setFiltro(f.valor)}
+          >
+            {f.rotulo}
           </FilterButton>
         ))}
       </Filters>
@@ -131,6 +176,7 @@ function AdminReservas() {
         <Table>
           <thead>
             <tr>
+              <Th>#</Th>
               <Th>Cliente</Th>
               <Th>Destino</Th>
               <Th>Vagas</Th>
@@ -141,16 +187,27 @@ function AdminReservas() {
           <tbody>
             {reservas.map((r) => (
               <tr key={r.id_reserva}>
+                <Td>{r.id_reserva}</Td>
                 <Td>{mapaClientes[r.id_cliente] ?? `Cliente ${r.id_cliente}`}</Td>
                 <Td>{mapaDestinos[r.id_excursao] ?? `Excursão ${r.id_excursao}`}</Td>
                 <Td>{r.qtd_vagas}</Td>
-                <Td>{r.status}</Td>
+                <Td>{ROTULOS_STATUS[r.status] ?? r.status}</Td>
                 <Td>
-                  {r.status !== 'cancelada' && (
-                    <DangerButton type="button" onClick={() => cancelarManual(r.id_reserva)}>
-                      Cancelar
-                    </DangerButton>
-                  )}
+                  <Actions>
+                    {r.status === 'pendente' && (
+                      <ConfirmButton
+                        type="button"
+                        onClick={() => confirmarPagamento(r.id_reserva)}
+                      >
+                        Confirmar pagamento
+                      </ConfirmButton>
+                    )}
+                    {r.status !== 'cancelada' && (
+                      <DangerButton type="button" onClick={() => cancelarManual(r.id_reserva)}>
+                        Cancelar
+                      </DangerButton>
+                    )}
+                  </Actions>
                 </Td>
               </tr>
             ))}

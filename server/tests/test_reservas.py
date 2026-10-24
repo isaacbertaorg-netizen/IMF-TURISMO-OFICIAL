@@ -171,6 +171,8 @@ def test_minhas_reservas_lista_apenas_do_cliente(client, fake_supabase, cliente_
     assert reservas[0]["id_reserva"] == 1
     # A listagem enriquece a reserva com o destino da excursão.
     assert reservas[0]["excursao_destino"] == "Caldas Novas"
+    # valor_pessoa permite calcular o total na mensagem de pagamento (WhatsApp).
+    assert reservas[0]["valor_pessoa"] == 179.0
 
 
 def test_cancelamento_dentro_do_prazo_devolve_vagas(client, fake_supabase, cliente_token):
