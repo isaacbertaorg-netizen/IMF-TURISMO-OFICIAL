@@ -27,7 +27,7 @@ from app.core.security import (
 # Mensagem única da solicitação: responde igual para e-mail cadastrado ou não,
 # para não revelar quais endereços existem no banco (enumeração de usuários).
 MENSAGEM_SOLICITACAO_RESET = (
-    "Se o e-mail estiver cadastrado, enviaremos as instrucoes para redefinir a senha."
+    "Se o e-mail estiver cadastrado, enviaremos as instruções para redefinir a senha."
 )
 
 logger = logging.getLogger(__name__)
@@ -157,4 +157,4 @@ def redefinir_senha(dados: dict[str, Any]) -> dict[str, str]:
         .execute()
     )
 
-    return {"mensagem": "Senha redefinida com sucesso. Faca login com a nova senha."}
+    return {"mensagem": "Senha redefinida com sucesso. Faça login com a nova senha."}

@@ -62,7 +62,7 @@ class TokenResetInvalidoError(DomainError):
     # 400: link de redefinição inválido, expirado, já usado ou de outro tipo.
     # A mensagem é genérica para não orientar um atacante sobre o motivo.
     status_code = 400
-    message = "Link de redefinicao invalido ou expirado"
+    message = "Link de redefinição inválido ou expirado"
 
 
 # ---------------------------------------------------------------------------
