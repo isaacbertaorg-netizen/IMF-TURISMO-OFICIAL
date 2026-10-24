@@ -10,11 +10,13 @@
 # do banco atualizar o estoque (evita dupla contagem).
 # ===========================================================================
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import date
 from typing import Any
 
 from app.core import supabase
+from app.core.datas import hoje_brasilia
 from app.core.exceptions import (
+    ExcursaoIndisponivelError,
     PassageirosDivergentesError,
     PrazoCancelamentoExpiradoError,
     RecursoNaoEncontradoError,
@@ -23,26 +25,28 @@ from app.core.exceptions import (
 )
 from app.services.excursao_service import obter_excursao
 
-# Fuso da regra de negócio: o prazo de cancelamento conta dias corridos no
-# calendário de Brasília. Sem horário de verão desde 2019, UTC-3 é fixo — por
-# isso o offset fixo em vez de zoneinfo (sem dependência de banco tzdata).
-# Usar a data UTC aqui trocaria o dia à noite (21h59 em Brasília = dia
-# seguinte em UTC), bloqueando cancelamento dentro do prazo.
-FUSO_BRASILIA = timezone(timedelta(hours=-3))
-
 
 def criar_reserva(
     id_cliente: int,
     id_excursao: int,
     qtd_vagas: int,
     passageiros: list[dict[str, Any]],
+    hoje: date | None = None,
 ) -> dict[str, Any]:
     """Cria uma reserva com status 'pendente'.
 
     Raises:
+        ExcursaoIndisponivelError: se a excursão já tiver começado.
         VagasInsuficientesError: se a excursão não comportar a quantidade pedida.
     """
+    # `hoje` é injetável para testes determinísticos de data.
+    hoje = hoje or hoje_brasilia()
     excursao = obter_excursao(id_excursao)
+
+    # Excursão que já começou não aceita novas reservas: o cliente não
+    # conseguiria embarcar. A checagem usa a data de Brasília.
+    if date.fromisoformat(excursao["data_ida"]) < hoje:
+        raise ExcursaoIndisponivelError()
 
     # Validação de overbooking na camada de aplicação (seção 6.6): mesmo com o
     # trigger no banco, validamos aqui para retornar erro amigável ao usuário.
@@ -144,7 +148,7 @@ def cancelar_reserva(id_cliente: int, id_reserva: int, hoje: date | None = None)
     """
     # `hoje` é injetável para permitir testes determinísticos de prazo.
     # Usa a data de Brasília (fuso do negócio), não a data UTC do servidor.
-    hoje = hoje or datetime.now(FUSO_BRASILIA).date()
+    hoje = hoje or hoje_brasilia()
 
     reserva = supabase.buscar_um(
         supabase.get_supabase().table("reserva").select("*").eq("id_reserva", id_reserva)

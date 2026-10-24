@@ -1,10 +1,36 @@
 # ===========================================================================
 # IMF TURISMO — testes de excursões (RF02, seção 3.1 do PRODUCT.md)
-# Cobre a listagem com filtros (destino, data, faixa de preço), os detalhes
-# de uma excursão e a rejeição de overbooking na criação de reserva.
+# Cobre a listagem com filtros (destino, data, faixa de preço), a ocultação
+# de excursões encerradas, os detalhes de uma excursão e a rejeição de
+# overbooking na criação de reserva.
 # ===========================================================================
 
+from datetime import date, timedelta
+
 import pytest
+
+from app.services import excursao_service
+
+# Datas relativas mantêm a suíte válida ao longo do tempo (sem "bomba-relógio").
+HOJE = date.today()
+
+
+def _excursao(id_excursao: int, data_ida: date, data_volta: date) -> dict:
+    """Excursão mínima para os testes de filtro por data."""
+    return {
+        "id_excursao": id_excursao,
+        "id_admin": 1,
+        "nome_excursao": f"Excursao {id_excursao}",
+        "destino": "Caldas Novas",
+        "data_ida": data_ida.isoformat(),
+        "data_volta": data_volta.isoformat(),
+        "valor_pessoa": 100.0,
+        "vagas_totais": 10,
+        "vagas_disponiveis": 10,
+        "prazo_cancelamento_dias": 7,
+        "descricao_roteiro": "Roteiro de teste.",
+        "itens_inclusos": "Hospedagem",
+    }
 
 
 @pytest.fixture()
@@ -18,8 +44,8 @@ def excursoes_semeadas(fake_supabase):
                 "id_admin": 1,
                 "nome_excursao": "Caldas Novas - Ferias",
                 "destino": "Caldas Novas",
-                "data_ida": "2026-12-10",
-                "data_volta": "2026-12-14",
+                "data_ida": (HOJE + timedelta(days=30)).isoformat(),
+                "data_volta": (HOJE + timedelta(days=34)).isoformat(),
                 "valor_pessoa": 179.0,
                 "vagas_totais": 30,
                 "vagas_disponiveis": 20,
@@ -32,8 +58,8 @@ def excursoes_semeadas(fake_supabase):
                 "id_admin": 1,
                 "nome_excursao": "Porto de Galinhas - Praia",
                 "destino": "Porto de Galinhas",
-                "data_ida": "2027-01-20",
-                "data_volta": "2027-01-27",
+                "data_ida": (HOJE + timedelta(days=60)).isoformat(),
+                "data_volta": (HOJE + timedelta(days=67)).isoformat(),
                 "valor_pessoa": 950.0,
                 "vagas_totais": 10,
                 "vagas_disponiveis": 10,
@@ -46,8 +72,8 @@ def excursoes_semeadas(fake_supabase):
                 "id_admin": 1,
                 "nome_excursao": "Caldas Novas - Aniversario",
                 "destino": "Caldas Novas",
-                "data_ida": "2027-03-05",
-                "data_volta": "2027-03-09",
+                "data_ida": (HOJE + timedelta(days=90)).isoformat(),
+                "data_volta": (HOJE + timedelta(days=94)).isoformat(),
                 "valor_pessoa": 210.0,
                 "vagas_totais": 15,
                 "vagas_disponiveis": 15,
@@ -59,7 +85,7 @@ def excursoes_semeadas(fake_supabase):
     )
 
 
-def test_listagem_sem_filtros_retorna_todas(client, excursoes_semeadas):
+def test_listagem_sem_filtros_retorna_futuras(client, excursoes_semeadas):
     resp = client.get("/api/excursoes")
     assert resp.status_code == 200
     assert len(resp.json()) == 3
@@ -83,10 +109,14 @@ def test_listagem_filtro_faixa_de_preco(client, excursoes_semeadas):
 
 def test_listagem_filtro_data_inicio(client, excursoes_semeadas):
     """Apenas excursões com data de ida a partir de data_inicio."""
-    resp = client.get("/api/excursoes", params={"data_inicio": "2026-12-15"})
+    data_inicio = (HOJE + timedelta(days=40)).isoformat()
+    resp = client.get("/api/excursoes", params={"data_inicio": data_inicio})
     assert resp.status_code == 200
     saidas = sorted(e["data_ida"] for e in resp.json())
-    assert saidas == ["2027-01-20", "2027-03-05"]
+    assert saidas == [
+        (HOJE + timedelta(days=60)).isoformat(),
+        (HOJE + timedelta(days=90)).isoformat(),
+    ]
 
 
 def test_listagem_filtros_combinados(client, excursoes_semeadas):
@@ -95,6 +125,39 @@ def test_listagem_filtros_combinados(client, excursoes_semeadas):
     assert resp.status_code == 200
     assert len(resp.json()) == 1
     assert resp.json()[0]["id_excursao"] == 3
+
+
+def test_listagem_oculta_excursao_encerrada(client, fake_supabase):
+    """Excursão cuja data_volta já passou não aparece para os clientes."""
+    fake_supabase.seed(
+        "excursao",
+        [
+            _excursao(20, HOJE - timedelta(days=10), HOJE - timedelta(days=6)),
+            _excursao(21, HOJE + timedelta(days=10), HOJE + timedelta(days=14)),
+        ],
+    )
+
+    resp = client.get("/api/excursoes")
+
+    assert resp.status_code == 200
+    assert [e["id_excursao"] for e in resp.json()] == [21]
+
+
+def test_listagem_mantem_excursao_que_termina_hoje(fake_supabase):
+    """No último dia (data_volta == hoje) a excursão ainda aparece."""
+    hoje = date(2026, 10, 23)
+    fake_supabase.seed(
+        "excursao",
+        [
+            _excursao(30, hoje - timedelta(days=2), hoje),
+            _excursao(31, hoje - timedelta(days=3), hoje - timedelta(days=1)),
+            _excursao(32, hoje, hoje + timedelta(days=2)),
+        ],
+    )
+
+    ids = [e["id_excursao"] for e in excursao_service.listar_excursoes(hoje=hoje)]
+
+    assert ids == [30, 32]
 
 
 def test_detalhes_da_excursao(client, excursoes_semeadas):
@@ -120,8 +183,8 @@ def test_reserva_rejeita_overbooking(client, fake_supabase, cliente_token):
                 "id_admin": 1,
                 "nome_excursao": "Pipa - Sol e Mar",
                 "destino": "Pipa",
-                "data_ida": "2027-06-01",
-                "data_volta": "2027-06-06",
+                "data_ida": (HOJE + timedelta(days=30)).isoformat(),
+                "data_volta": (HOJE + timedelta(days=35)).isoformat(),
                 "valor_pessoa": 800.0,
                 "vagas_totais": 2,
                 "vagas_disponiveis": 2,

@@ -1,8 +1,8 @@
 # ===========================================================================
 # IMF TURISMO — testes de reservas (RF04/RF05/RF06, seções 3.4/3.5 do PRODUCT.md)
-# Cobre criação de reserva com passageiros, cancelamento dentro e fora do
-# prazo (prazo_cancelamento_dias) e a devolução das vagas ao estoque
-# (simulação do trigger do banco no conftest).
+# Cobre criação de reserva com passageiros, rejeição de excursão já iniciada,
+# cancelamento dentro e fora do prazo (prazo_cancelamento_dias) e a devolução
+# das vagas ao estoque (simulação do trigger do banco no conftest).
 # ===========================================================================
 
 from datetime import date, timedelta
@@ -92,6 +92,38 @@ def test_criacao_rejeita_qtd_passageiros_divergente(client, fake_supabase, clien
     )
     # Validação de schema do Pydantic impede a divergência (seção 6.1).
     assert resp.status_code == 422
+
+
+def test_reserva_rejeita_excursao_que_ja_comecou(client, fake_supabase, cliente_token):
+    """Não aceita reserva depois que a data de ida passou."""
+    hoje = date.today()
+    seed_excursao(
+        fake_supabase,
+        data_ida=(hoje - timedelta(days=2)).isoformat(),
+        data_volta=(hoje - timedelta(days=1)).isoformat(),
+    )
+
+    resp = fazer_reserva(client, {"Authorization": f"Bearer {cliente_token}"}, qtd=1)
+
+    assert resp.status_code == 409
+    assert "dispon" in resp.json()["detail"].lower()
+    # Nada é gravado quando a excursão não está mais disponível.
+    assert fake_supabase.table("reserva").select("*").execute().data == []
+
+
+def test_reserva_rejeita_excursao_em_andamento(client, fake_supabase, cliente_token):
+    """Excursão que já começou (mas ainda não terminou) também não aceita reserva."""
+    hoje = date.today()
+    seed_excursao(
+        fake_supabase,
+        data_ida=(hoje - timedelta(days=3)).isoformat(),
+        data_volta=(hoje + timedelta(days=1)).isoformat(),
+    )
+
+    resp = fazer_reserva(client, {"Authorization": f"Bearer {cliente_token}"}, qtd=1)
+
+    assert resp.status_code == 409
+    assert fake_supabase.table("reserva").select("*").execute().data == []
 
 
 def test_reserva_requer_autenticacao(client, fake_supabase):

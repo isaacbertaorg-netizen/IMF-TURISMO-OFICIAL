@@ -1,8 +1,8 @@
 // ===========================================================================
 // IMF TURISMO — Detalhes da Excursão (seção 3.2 do PRODUCT.md)
-// Foto grande, título navy, atributos completos e botão Reservar. Exige login:
-// se deslogado, o fluxo de reserva redireciona para /login (entra no próximo
-// checkpoint); por enquanto o botão aponta para a rota de reserva futura.
+// Foto grande, título navy, atributos completos e botão Reservar (oculto
+// quando a data de ida já passou). Exige login: se deslogado, o fluxo de
+// reserva redireciona para /login.
 // ===========================================================================
 
 import { useEffect, useState } from 'react'
@@ -96,6 +96,11 @@ const ReserveButton = styled(Link)`
   padding: 0.7rem 1.8rem;
 `
 
+const ClosedNote = styled.p`
+  color: ${colors.textMuted};
+  font-weight: 600;
+`
+
 const Feedback = styled.p`
   text-align: center;
   color: ${colors.textMuted};
@@ -113,6 +118,19 @@ function fotoLocal(destino) {
   if (texto.includes('caldas')) return cardCaldas
   if (texto.includes('macei')) return cardMaceio
   return cardCaldas
+}
+
+// Data de hoje no calendário de Brasília (mesma regra do back-end).
+// formatToParts evita depender do formato textual do locale.
+function hojeBrasiliaISO() {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+  const valores = Object.fromEntries(partes.map((parte) => [parte.type, parte.value]))
+  return `${valores.year}-${valores.month}-${valores.day}`
 }
 
 function ExcursionDetails() {
@@ -156,6 +174,10 @@ function ExcursionDetails() {
     )
   }
 
+  // Reservas encerram quando a data de ida passa (o back-end valida de novo).
+  const reservasEncerradas =
+    Boolean(excursao.data_ida) && excursao.data_ida < hojeBrasiliaISO()
+
   return (
     <Page>
       <Back to="/">← Voltar à página inicial</Back>
@@ -173,8 +195,12 @@ function ExcursionDetails() {
         <Body>
           <Title>{excursao.destino}</Title>
           <Meta>
-            {formatarDataBR(excursao.data_ida)} a {formatarDataBR(excursao.data_volta)} ·{' '}
-            {excursao.vagas_disponiveis} de {excursao.vagas_totais} vagas disponíveis
+            {formatarDataBR(excursao.data_ida)} a {formatarDataBR(excursao.data_volta)}
+            {!reservasEncerradas && (
+              <>
+                {' '}· {excursao.vagas_disponiveis} de {excursao.vagas_totais} vagas disponíveis
+              </>
+            )}
           </Meta>
           <Price>{formatarMoeda(excursao.valor_pessoa)} / pessoa</Price>
           <Section>
@@ -188,8 +214,11 @@ function ExcursionDetails() {
             </Section>
           )}
           <Actions>
-            {/* O fluxo completo de reserva (seção 3.4) entra no próximo checkpoint. */}
-            <ReserveButton to={`/excursoes/${excursao.id_excursao}/reservar`}>Reservar</ReserveButton>
+            {reservasEncerradas ? (
+              <ClosedNote>Reservas encerradas para esta excursão.</ClosedNote>
+            ) : (
+              <ReserveButton to={`/excursoes/${excursao.id_excursao}/reservar`}>Reservar</ReserveButton>
+            )}
           </Actions>
         </Body>
       </Card>

@@ -9,6 +9,7 @@ from datetime import date
 from typing import Any
 
 from app.core import supabase
+from app.core.datas import hoje_brasilia
 from app.core.exceptions import RecursoNaoEncontradoError
 
 
@@ -18,13 +19,21 @@ def listar_excursoes(
     data_fim: date | None = None,
     preco_min: float | None = None,
     preco_max: float | None = None,
+    hoje: date | None = None,
 ) -> list[dict[str, Any]]:
-    """Lista excursões aplicando os filtros exigidos pelo RF02.
+    """Lista excursões futuras/em andamento aplicando os filtros do RF02.
 
     Cada filtro é adicionado de forma incremental, sempre com os métodos
     parametrizados do client (eq/gte/lte/ilike), evitando injeção.
     """
+    # `hoje` é injetável para testes determinísticos de data.
+    hoje = hoje or hoje_brasilia()
     query = supabase.get_supabase().table("excursao").select("*")
+
+    # Catálogo público: esconde excursões encerradas (data_volta anterior a
+    # hoje). No último dia (data_volta == hoje) ainda aparece, pois a viagem
+    # só termina ao fim do dia. O admin continua vendo todas (admin_service).
+    query = query.gte("data_volta", hoje.isoformat())
 
     if destino:
         # Busca parcial e case-insensitive pelo nome do destino.

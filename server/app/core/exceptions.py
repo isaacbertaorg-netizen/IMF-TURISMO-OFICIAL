@@ -32,6 +32,12 @@ class VagasInsuficientesError(DomainError):
     message = "Vagas insuficientes para a quantidade solicitada"
 
 
+class ExcursaoIndisponivelError(DomainError):
+    # 409: a excursão já começou; não aceita novas reservas.
+    status_code = 409
+    message = "Esta excursão não está mais disponível para reservas"
+
+
 class PrazoCancelamentoExpiradoError(DomainError):
     status_code = 400
     message = "Prazo de cancelamento expirado"
