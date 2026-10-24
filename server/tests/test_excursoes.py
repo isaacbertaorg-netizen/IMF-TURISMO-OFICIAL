@@ -132,7 +132,11 @@ def test_reserva_rejeita_overbooking(client, fake_supabase, cliente_token):
         ],
     )
     passageiros = [
-        {"nome_passageiro": f"Passageiro {i}", "cpf": f"{i:011d}", "data_nascimento": "1990-01-01"}
+        {
+            "nome_passageiro": f"Passageiro {i}",
+            "cpf": ["12345678909", "52998224725", "11144477735", "98765432100", "39053344705"][i],
+            "data_nascimento": "1990-01-01",
+        }
         for i in range(5)
     ]
     resp = client.post(

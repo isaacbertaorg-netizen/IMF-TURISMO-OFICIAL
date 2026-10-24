@@ -7,6 +7,10 @@
 
 from datetime import date, timedelta
 
+# CPFs com dígitos verificadores corretos. O schema passou a validá-los, então
+# os testes não podem mais usar números sequenciais como 00000000001.
+CPFS_VALIDOS = ["12345678909", "52998224725", "11144477735", "98765432100", "39053344705"]
+
 
 def seed_excursao(fake_supabase, **campos):
     """Semeadura de uma excursão com defaults controlados pelos testes."""
@@ -33,7 +37,7 @@ def fazer_reserva(client, headers, id_excursao=100, qtd=2):
     passageiros = [
         {
             "nome_passageiro": f"Passageiro {i}",
-            "cpf": f"{i:011d}",
+            "cpf": CPFS_VALIDOS[i % len(CPFS_VALIDOS)],
             "data_nascimento": "1990-05-10",
         }
         for i in range(qtd)
@@ -80,7 +84,7 @@ def test_criacao_rejeita_qtd_passageiros_divergente(client, fake_supabase, clien
         "id_excursao": 100,
         "qtd_vagas": 3,
         "passageiros": [
-            {"nome_passageiro": "So Um", "cpf": "12345678901", "data_nascimento": "1990-05-10"}
+            {"nome_passageiro": "So Um", "cpf": "12345678909", "data_nascimento": "1990-05-10"}
         ],
     }
     resp = client.post(
@@ -95,6 +99,29 @@ def test_reserva_requer_autenticacao(client, fake_supabase):
     seed_excursao(fake_supabase)
     resp = fazer_reserva(client, {})
     assert resp.status_code == 401
+
+
+def test_reserva_rejeita_cpf_invalido_do_passageiro(client, fake_supabase, cliente_token):
+    """CPF do passageiro também passa pela checagem dos dígitos verificadores."""
+    seed_excursao(fake_supabase)
+    payload = {
+        "id_excursao": 100,
+        "qtd_vagas": 1,
+        "passageiros": [
+            {
+                "nome_passageiro": "CPF Errado",
+                "cpf": "12345678900",
+                "data_nascimento": "1990-05-10",
+            }
+        ],
+    }
+    resp = client.post(
+        "/api/reservas",
+        json=payload,
+        headers={"Authorization": f"Bearer {cliente_token}"},
+    )
+    assert resp.status_code == 422
+    assert "cpf" in resp.text.lower()
 
 
 def test_minhas_reservas_lista_apenas_do_cliente(client, fake_supabase, cliente_token):

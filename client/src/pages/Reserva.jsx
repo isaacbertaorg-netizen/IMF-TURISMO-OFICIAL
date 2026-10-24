@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { api, formatarDataBR, formatarMoeda, mensagemErro } from '../lib/api.js'
-import { formatarCPF } from '../lib/mascaras.js'
+import { formatarCPF, cpfValido } from '../lib/mascaras.js'
 import { colors } from '../theme.js'
 import cardCaldas from '../assets/card-caldas-novas.jpg'
 import cardMaceio from '../assets/card-maceio.webp'
@@ -234,6 +234,12 @@ function Reserva() {
 
   async function confirmar() {
     setErro('')
+    // Barra o CPF inválido antes de chamar a API, indicando qual passageiro.
+    const indiceInvalido = passageiros.findIndex((p) => !cpfValido(p.cpf))
+    if (indiceInvalido >= 0) {
+      setErro(`CPF inválido no passageiro ${indiceInvalido + 1}. Confira os números.`)
+      return
+    }
     setEnviando(true)
     try {
       await api.post('/api/reservas', {

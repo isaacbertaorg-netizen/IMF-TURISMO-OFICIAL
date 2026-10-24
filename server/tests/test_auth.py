@@ -8,7 +8,7 @@ import bcrypt
 
 DADOS_CADASTRO = {
     "nome": "Maria Silva",
-    "cpf": "123.456.789-01",
+    "cpf": "123.456.789-09",
     "email": "maria@teste.com",
     "telefone": "(61) 99999-0000",
     "cep": "72876-123",
@@ -31,7 +31,7 @@ def test_cadastro_cria_cliente_com_senha_hasheada(client, fake_supabase):
     clientes = fake_supabase.table("cliente").select("*").execute().data
     assert len(clientes) == 1
     # CPF e CEP normalizados (apenas dígitos) e UF em maiúsculas na gravação.
-    assert clientes[0]["cpf"] == "12345678901"
+    assert clientes[0]["cpf"] == "12345678909"
     assert clientes[0]["cep"] == "72876123"
     assert clientes[0]["uf"] == "GO"
     # A senha nunca é armazenada em texto puro (RNF04).

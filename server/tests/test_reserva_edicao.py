@@ -7,6 +7,9 @@
 
 from datetime import date, timedelta
 
+# CPFs com dígitos verificadores corretos (ver test_reservas.py).
+CPFS_VALIDOS = ["12345678909", "52998224725", "11144477735", "98765432100", "39053344705"]
+
 
 def seed_excursao(fake_supabase, **campos):
     base = {
@@ -32,7 +35,7 @@ def fazer_reserva(client, headers, id_excursao=100, qtd=2):
     passageiros = [
         {
             "nome_passageiro": f"Passageiro {i}",
-            "cpf": f"{i:011d}",
+            "cpf": CPFS_VALIDOS[i % len(CPFS_VALIDOS)],
             "data_nascimento": "1990-05-10",
         }
         for i in range(qtd)
@@ -51,8 +54,8 @@ def test_editar_passageiros_da_propria_reserva(client, fake_supabase, cliente_to
     criada = fazer_reserva(client, headers, qtd=2).json()
 
     novos = [
-        {"nome_passageiro": "Maria Silva", "cpf": "11111111111", "data_nascimento": "1985-03-20"},
-        {"nome_passageiro": "Joao Silva", "cpf": "22222222222", "data_nascimento": "2010-07-11"},
+        {"nome_passageiro": "Maria Silva", "cpf": "52998224725", "data_nascimento": "1985-03-20"},
+        {"nome_passageiro": "Joao Silva", "cpf": "11144477735", "data_nascimento": "2010-07-11"},
     ]
     resp = client.put(
         f"/api/reservas/{criada['id_reserva']}/passageiros",
@@ -92,12 +95,34 @@ def test_editar_passageiros_rejeita_qtd_divergente(client, fake_supabase, client
         f"/api/reservas/{criada['id_reserva']}/passageiros",
         json={
             "passageiros": [
-                {"nome_passageiro": "So Um", "cpf": "12345678901", "data_nascimento": "1990-05-10"}
+                {"nome_passageiro": "So Um", "cpf": "12345678909", "data_nascimento": "1990-05-10"}
             ]
         },
         headers=headers,
     )
 
+    assert resp.status_code == 422
+
+
+def test_editar_passageiros_rejeita_cpf_invalido(client, fake_supabase, cliente_token):
+    """A edição usa o mesmo schema, então também barra CPF inválido."""
+    seed_excursao(fake_supabase)
+    headers = {"Authorization": f"Bearer {cliente_token}"}
+    criada = fazer_reserva(client, headers, qtd=1).json()
+
+    resp = client.put(
+        f"/api/reservas/{criada['id_reserva']}/passageiros",
+        json={
+            "passageiros": [
+                {
+                    "nome_passageiro": "CPF Errado",
+                    "cpf": "111.111.111-11",
+                    "data_nascimento": "1990-05-10",
+                }
+            ]
+        },
+        headers=headers,
+    )
     assert resp.status_code == 422
 
 
@@ -122,7 +147,7 @@ def test_editar_passageiros_de_outro_cliente_retorna_404(client, fake_supabase, 
             "passageiros": [
                 {
                     "nome_passageiro": "Outro Nome",
-                    "cpf": "12345678901",
+                    "cpf": "12345678909",
                     "data_nascimento": "1990-05-10",
                 }
             ]
@@ -145,7 +170,7 @@ def test_editar_passageiros_de_reserva_cancelada_e_rejeitado(client, fake_supaba
             "passageiros": [
                 {
                     "nome_passageiro": "Nome Novo",
-                    "cpf": "12345678901",
+                    "cpf": "12345678909",
                     "data_nascimento": "1990-05-10",
                 }
             ]

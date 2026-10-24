@@ -15,7 +15,7 @@ from app.core import email
 
 DADOS_CADASTRO = {
     "nome": "Maria Silva",
-    "cpf": "123.456.789-01",
+    "cpf": "123.456.789-09",
     "email": "maria@teste.com",
     "telefone": "(61) 99999-0000",
     "cep": "72876-123",

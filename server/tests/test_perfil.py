@@ -75,5 +75,5 @@ def test_perfil_ignora_cpf_e_email(client, fake_supabase, cliente_token):
         .execute()
         .data
     )
-    assert linha["cpf"] == "12345678901"
+    assert linha["cpf"] == "12345678909"
     assert linha["email"] == "cliente@teste.com"

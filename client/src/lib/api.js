@@ -56,7 +56,10 @@ export function mensagemErro(err, padrao) {
       .map((item) => {
         if (typeof item === 'string') return item
         const campo = Array.isArray(item?.loc) ? item.loc[item.loc.length - 1] : null
-        return campo ? `${campo}: ${item?.msg ?? ''}` : (item?.msg ?? '')
+        // O Pydantic prefixa os erros de validação com "Value error, ";
+        // removemos para o usuário ver apenas o texto útil.
+        const msg = String(item?.msg ?? '').replace(/^Value error,\s*/i, '')
+        return campo ? `${campo}: ${msg}` : msg
       })
       .filter(Boolean)
       .join(' ')

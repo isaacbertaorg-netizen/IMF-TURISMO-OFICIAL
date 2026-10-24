@@ -4,10 +4,11 @@
 # Cada vaga selecionada exige o cadastro de um passageiro.
 # ===========================================================================
 
-import re
 from datetime import date
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+from app.core.validacao import cpf_valido, normalizar_cpf
 
 
 class PassageiroCreate(BaseModel):
@@ -20,10 +21,12 @@ class PassageiroCreate(BaseModel):
     @field_validator("cpf")
     @classmethod
     def validar_cpf(cls, valor: str) -> str:
-        """Normaliza o CPF para apenas dígitos e valida o tamanho."""
-        digitos = re.sub(r"\D", "", valor)
+        """Normaliza o CPF do passageiro e confere os dígitos verificadores."""
+        digitos = normalizar_cpf(valor)
         if len(digitos) != 11:
-            raise ValueError("CPF deve conter 11 digitos")
+            raise ValueError("CPF deve conter 11 dígitos")
+        if not cpf_valido(digitos):
+            raise ValueError("CPF inválido")
         return digitos
 
 

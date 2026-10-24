@@ -12,7 +12,7 @@ import AuthLayout, { ErrorText, PillInput, PrimaryButton } from '../components/A
 import EnderecoForm from '../components/EnderecoForm.jsx'
 import { api, mensagemErro } from '../lib/api.js'
 import { useAuth } from '../lib/auth.jsx'
-import { apenasDigitos, formatarCPF, formatarTelefone } from '../lib/mascaras.js'
+import { apenasDigitos, cpfValido, formatarCPF, formatarTelefone } from '../lib/mascaras.js'
 import { colors } from '../theme.js'
 import fundoCadastro from '../assets/fundo-cadastro.webp'
 
@@ -54,6 +54,10 @@ function Cadastro() {
     setErro('')
     if (form.senha !== form.confirmar_senha) {
       setErro('As senhas não coincidem.')
+      return
+    }
+    if (!cpfValido(form.cpf)) {
+      setErro('CPF inválido. Confira os números digitados.')
       return
     }
     setEnviando(true)

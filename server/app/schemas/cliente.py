@@ -8,6 +8,8 @@ import re
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+from app.core.validacao import cpf_valido, normalizar_cpf
+
 
 class CadastroCliente(BaseModel):
     """Dados do formulário de criação de conta de cliente."""
@@ -29,10 +31,12 @@ class CadastroCliente(BaseModel):
     @field_validator("cpf")
     @classmethod
     def validar_cpf(cls, valor: str) -> str:
-        """Normaliza o CPF para apenas dígitos e valida o tamanho."""
-        digitos = re.sub(r"\D", "", valor)
+        """Normaliza o CPF e confere os dígitos verificadores."""
+        digitos = normalizar_cpf(valor)
         if len(digitos) != 11:
-            raise ValueError("CPF deve conter 11 digitos")
+            raise ValueError("CPF deve conter 11 dígitos")
+        if not cpf_valido(digitos):
+            raise ValueError("CPF inválido")
         return digitos
 
     @field_validator("cep")

@@ -17,6 +17,25 @@ export function formatarCPF(valor) {
   return texto
 }
 
+// Valida o CPF pelos dígitos verificadores (módulo 11), o mesmo cálculo do
+// back-end. Feito aqui para o usuário ver o erro antes de enviar o formulário.
+export function cpfValido(valor) {
+  const d = apenasDigitos(valor)
+  // Sequências repetidas (000..., 111...) passam no cálculo, mas não existem.
+  if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false
+
+  for (let tamanho = 9; tamanho <= 10; tamanho += 1) {
+    let soma = 0
+    for (let i = 0; i < tamanho; i += 1) {
+      soma += Number(d[i]) * (tamanho + 1 - i)
+    }
+    const resto = soma % 11
+    const esperado = resto < 2 ? 0 : 11 - resto
+    if (Number(d[tamanho]) !== esperado) return false
+  }
+  return true
+}
+
 // 00000-000 (parcial conforme a digitação).
 export function formatarCEP(valor) {
   const d = apenasDigitos(valor).slice(0, 8)

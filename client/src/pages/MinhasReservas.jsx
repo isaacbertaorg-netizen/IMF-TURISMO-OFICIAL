@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { api, formatarDataHoraLocal, mensagemErro } from '../lib/api.js'
-import { formatarCPF } from '../lib/mascaras.js'
+import { formatarCPF, cpfValido } from '../lib/mascaras.js'
 import { colors } from '../theme.js'
 
 const Page = styled.main`
@@ -212,6 +212,12 @@ function MinhasReservas() {
   async function salvarEdicao(event, reserva) {
     event.preventDefault()
     setErroEdicao('')
+    // Mesma checagem do back-end, mas apontando o passageiro com problema.
+    const indiceInvalido = passageiros.findIndex((p) => !cpfValido(p.cpf))
+    if (indiceInvalido >= 0) {
+      setErroEdicao(`CPF inválido no passageiro ${indiceInvalido + 1}. Confira os números.`)
+      return
+    }
     setSalvando(true)
     try {
       await api.put(`/api/reservas/${reserva.id_reserva}/passageiros`, {

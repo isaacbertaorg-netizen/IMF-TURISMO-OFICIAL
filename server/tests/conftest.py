@@ -304,7 +304,7 @@ def cliente_token(fake_supabase):
             {
                 "id_cliente": 1,
                 "nome_cliente": "Cliente Teste",
-                "cpf": "12345678901",
+                "cpf": "12345678909",
                 "email": "cliente@teste.com",
                 "telefone": "61999999999",
                 "cep": "70000000",
