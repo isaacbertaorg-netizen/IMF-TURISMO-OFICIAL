@@ -2,13 +2,13 @@
 // IMF TURISMO — Gerenciamento de Excursões (seção 3.9 + Página 5)
 // Listagem em tabela com Editar/Excluir + formulário "Cadastrar Nova Excursão".
 // O protótipo traz 1 campo Data; o RF01 exige ida + volta, descrição do
-// roteiro e itens inclusos — todos incluídos aqui. Upload de imagem para o
-// Storage entra como campo de URL simples até o Storage ser ligado no front.
+// roteiro e itens inclusos — todos incluídos aqui. A imagem pode ser enviada
+// do computador (Supabase Storage via API) ou colada como URL/link do Drive.
 // ===========================================================================
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import styled from 'styled-components'
-import { api } from '../lib/api.js'
+import { api, mensagemErro } from '../lib/api.js'
 import { colors } from '../theme.js'
 
 const Title = styled.h1`
@@ -129,6 +129,50 @@ const Feedback = styled.p`
   font-size: 0.9rem;
 `
 
+const ErrorText = styled.p`
+  color: ${colors.danger};
+  font-size: 0.85rem;
+  margin-bottom: 0.7rem;
+`
+
+const UploadRow = styled.div`
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.7rem;
+`
+
+const UploadButton = styled.button`
+  border: 0;
+  border-radius: 999px;
+  background-color: ${colors.primary};
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.55rem 1.1rem;
+
+  &:disabled {
+    opacity: 0.6;
+  }
+`
+
+const Preview = styled.img`
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 1rem;
+  margin-bottom: 0.7rem;
+  background-color: ${colors.inputBg};
+`
+
+const Hint = styled.p`
+  color: ${colors.textMuted};
+  font-size: 0.78rem;
+  margin-bottom: 0.7rem;
+`
+
 const FORM_VAZIO = {
   nome_excursao: '',
   destino: '',
@@ -145,11 +189,36 @@ const FORM_VAZIO = {
 
 const DESTINOS_SUGERIDOS = ['Caldas Novas', 'Maceió', 'Porto de Galinhas', 'Jericoacoara', 'Outro']
 
+// O Vercel corta requisições em ~4,5 MB; 4 MB deixa margem para o multipart.
+// A checagem no front evita o erro genérico de "payload too large".
+const LIMITE_IMAGEM_BYTES = 4 * 1024 * 1024
+const TIPOS_IMAGEM = ['image/jpeg', 'image/png', 'image/webp']
+
+// Extrai o ID de um link do Google Drive (formatos /file/d/ID/view e ?id=ID).
+function idDoDrive(valor) {
+  const texto = String(valor ?? '')
+  const match = texto.match(/\/d\/([\w-]{10,})/) || texto.match(/[?&]id=([\w-]{10,})/)
+  return match?.[1] ?? null
+}
+
+// Converte o link de compartilhamento do Drive na URL direta da imagem.
+// O arquivo precisa estar público ("Qualquer pessoa com o link").
+function normalizarLinkImagem(valor) {
+  const id = idDoDrive(valor)
+  if (id && valor.includes('drive.google.com')) {
+    return `https://lh3.googleusercontent.com/d/${id}`
+  }
+  return valor
+}
+
 function AdminExcursoes() {
   const [lista, setLista] = useState([])
   const [form, setForm] = useState(FORM_VAZIO)
   const [editando, setEditando] = useState(null)
   const [erro, setErro] = useState('')
+  const [enviandoImagem, setEnviandoImagem] = useState(false)
+  const [erroImagem, setErroImagem] = useState('')
+  const arquivoRef = useRef(null)
 
   async function carregar() {
     try {
@@ -166,6 +235,40 @@ function AdminExcursoes() {
 
   function atualizar(campo, valor) {
     setForm((atual) => ({ ...atual, [campo]: valor }))
+  }
+
+  async function enviarImagem(event) {
+    const arquivo = event.target.files?.[0]
+    if (!arquivo) return
+    setErroImagem('')
+
+    if (!TIPOS_IMAGEM.includes(arquivo.type)) {
+      setErroImagem('Envie uma imagem JPG, PNG ou WebP.')
+      event.target.value = ''
+      return
+    }
+
+    if (arquivo.size > LIMITE_IMAGEM_BYTES) {
+      const tamanho = (arquivo.size / 1024 / 1024).toFixed(1)
+      setErroImagem(`A imagem tem ${tamanho} MB. O limite é 4 MB.`)
+      event.target.value = ''
+      return
+    }
+
+    setEnviandoImagem(true)
+    try {
+      const dados = new FormData()
+      dados.append('arquivo', arquivo)
+      // Sem Content-Type manual: o axios define o boundary do multipart.
+      const resp = await api.post('/api/admin/excursoes/imagem', dados)
+      atualizar('imagem_url', resp.data.imagem_url)
+    } catch (err) {
+      setErroImagem(mensagemErro(err, 'Não foi possível enviar a imagem.'))
+    } finally {
+      setEnviandoImagem(false)
+      // Permite escolher o mesmo arquivo novamente depois de um erro.
+      event.target.value = ''
+    }
   }
 
   async function salvar(event) {
@@ -187,7 +290,7 @@ function AdminExcursoes() {
       descricao_roteiro: form.descricao_roteiro.trim(),
       itens_inclusos: form.itens_inclusos.trim(),
       prazo_cancelamento_dias: Number(form.prazo_cancelamento_dias),
-      imagem_url: form.imagem_url.trim() || null,
+      imagem_url: normalizarLinkImagem(form.imagem_url.trim()) || null,
     }
     try {
       if (editando) {
@@ -274,8 +377,50 @@ function AdminExcursoes() {
           <TextArea rows={2} value={form.itens_inclusos} onChange={(e) => atualizar('itens_inclusos', e.target.value)} />
           <Label>Prazo de cancelamento (dias):</Label>
           <PillInput type="number" min={0} value={form.prazo_cancelamento_dias} onChange={(e) => atualizar('prazo_cancelamento_dias', e.target.value)} />
-          <Label>Imagem da excursão (URL do Storage):</Label>
-          <PillInput type="url" placeholder="https://…/imagem.jpg" value={form.imagem_url} onChange={(e) => atualizar('imagem_url', e.target.value)} />
+          <Label>Imagem da excursão:</Label>
+          {form.imagem_url && (
+            <Preview
+              key={form.imagem_url}
+              src={form.imagem_url}
+              alt="Prévia da imagem da excursão"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+              }}
+            />
+          )}
+          <UploadRow>
+            <input
+              ref={arquivoRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={enviarImagem}
+              hidden
+            />
+            <UploadButton
+              type="button"
+              onClick={() => arquivoRef.current?.click()}
+              disabled={enviandoImagem}
+            >
+              {enviandoImagem ? 'Enviando…' : 'Escolher imagem do computador'}
+            </UploadButton>
+            {form.imagem_url && (
+              <EditButton type="button" onClick={() => atualizar('imagem_url', '')}>
+                Remover imagem
+              </EditButton>
+            )}
+          </UploadRow>
+          <Hint>
+            JPG, PNG ou WebP, até 4 MB. Também aceita colar uma URL ou um link do Google
+            Drive — nesse caso, compartilhe o arquivo como “Qualquer pessoa com o link”.
+          </Hint>
+          <PillInput
+            type="url"
+            placeholder="https://…/imagem.jpg ou link do Drive"
+            value={form.imagem_url}
+            onChange={(e) => atualizar('imagem_url', e.target.value)}
+            onBlur={(e) => atualizar('imagem_url', normalizarLinkImagem(e.target.value))}
+          />
+          {erroImagem && <ErrorText>{erroImagem}</ErrorText>}
           {erro && <Feedback>{erro}</Feedback>}
           <SaveButton type="submit">{editando ? 'Atualizar' : 'Salvar'}</SaveButton>
         </form>

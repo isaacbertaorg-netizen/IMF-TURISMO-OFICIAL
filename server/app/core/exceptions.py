@@ -65,6 +65,12 @@ class TokenResetInvalidoError(DomainError):
     message = "Link de redefinição inválido ou expirado"
 
 
+class ArquivoInvalidoError(DomainError):
+    # 400: upload recusado (tipo, conteúdo ou tamanho não permitido).
+    status_code = 400
+    message = "Arquivo inválido"
+
+
 # ---------------------------------------------------------------------------
 # Handler único que converte DomainError em JSON com código HTTP adequado.
 # ---------------------------------------------------------------------------

@@ -87,6 +87,14 @@ class Settings:
             r"\D", "", os.getenv("WHATSAPP_NUMERO", "556196389634")
         )
 
+        # --------------------- Imagens das excursões (Storage) ----------------
+        # Bucket público onde o admin envia as fotos pelo formulário. O
+        # back-end cria o bucket na primeira utilização, se ainda não existir.
+        self.storage_bucket = os.getenv("SUPABASE_STORAGE_BUCKET", "excursao-imagens")
+        # Limite por arquivo. O Vercel aceita ~4,5 MB por requisição, então
+        # 4 MB deixa margem para o envelope multipart.
+        self.max_imagem_mb = int(os.getenv("MAX_IMAGEM_MB", "4"))
+
         # Ambiente da aplicação. O Vercel define VERCEL_ENV=production, então
         # ele serve de fallback quando APP_ENV não está configurado.
         self.ambiente = (os.getenv("APP_ENV") or os.getenv("VERCEL_ENV") or "development").lower()

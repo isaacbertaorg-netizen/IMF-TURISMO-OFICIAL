@@ -4,8 +4,10 @@
 # Depends(get_current_admin), que valida token + role ADMIN (seção 6.2).
 # ===========================================================================
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, UploadFile
 
+from app.config import settings
+from app.core import storage
 from app.core.auth import get_current_admin
 from app.schemas.excursao import ExcursaoCreate, ExcursaoUpdate
 from app.services import admin_service
@@ -36,6 +38,20 @@ def criar_excursao(dados: ExcursaoCreate, admin: dict = Depends(get_current_admi
     return admin_service.criar_excursao(
         id_admin=admin["id_admin"], dados=dados.model_dump(mode="json")
     )
+
+
+@router.post("/excursoes/imagem")
+async def enviar_imagem_excursao(arquivo: UploadFile = File(...)):
+    """Recebe a imagem do computador e devolve a URL pública no Storage.
+
+    O upload passa pela API (e não direto do navegador) para a chave de
+    serviço do Supabase nunca chegar ao front (seção 6.3).
+    """
+    limite = settings.max_imagem_mb * 1024 * 1024
+    # Lê no máximo limite + 1: detecta excesso sem carregar um arquivo
+    # gigante na memória (o Vercel também corta em ~4,5 MB por requisição).
+    conteudo = await arquivo.read(limite + 1)
+    return {"imagem_url": storage.salvar_imagem(conteudo, arquivo.content_type or "")}
 
 
 @router.put("/excursoes/{id_excursao}")

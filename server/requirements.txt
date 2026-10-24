@@ -17,6 +17,8 @@ uvicorn[standard]
 pydantic
 # Validator de e-mail usado por pydantic EmailStr nos schemas.
 email-validator
+# Leitura de formulários multipart (upload de imagens das excursões).
+python-multipart
 supabase
 python-dotenv
 slowapi
