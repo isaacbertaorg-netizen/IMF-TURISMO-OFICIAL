@@ -5,6 +5,7 @@
 // ===========================================================================
 
 import { useCallback, useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import styled from 'styled-components'
 import { colors } from '../theme.js'
 import { api } from '../lib/api.js'
@@ -68,6 +69,12 @@ const List = styled.section`
   gap: 1.25rem;
 `
 
+// Âncora usada pelo link "Excursões" da navbar; o espaço extra evita que o
+// título fique escondido atrás da barra fixa ao rolar.
+const ExcursionsSection = styled.section`
+  scroll-margin-top: 120px;
+`
+
 const Feedback = styled.p`
   text-align: center;
   color: ${colors.textMuted};
@@ -75,6 +82,7 @@ const Feedback = styled.p`
 `
 
 function Home() {
+  const location = useLocation()
   const [itens, setItens] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
@@ -107,6 +115,13 @@ function Home() {
   useEffect(() => {
     buscar({})
   }, [buscar])
+
+  // O link "Excursões" da navbar chega com #excursoes: rola até a lista.
+  useEffect(() => {
+    if (location.hash === '#excursoes') {
+      document.getElementById('excursoes')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [location.hash])
 
   function atualizar(campo, valor) {
     setFiltros((atual) => ({ ...atual, [campo]: valor }))
@@ -164,18 +179,20 @@ function Home() {
         </ClearButton>
       </Filters>
 
-      {carregando && <Feedback>Carregando pacotes…</Feedback>}
-      {!carregando && erro && <Feedback>{erro}</Feedback>}
-      {!carregando && !erro && itens.length === 0 && (
-        <Feedback>Nenhum pacote encontrado para os filtros informados.</Feedback>
-      )}
-      {!carregando && !erro && itens.length > 0 && (
-        <List>
-          {itens.map((excursao) => (
-            <ExcursionCard key={excursao.id_excursao} excursao={excursao} />
-          ))}
-        </List>
-      )}
+      <ExcursionsSection id="excursoes">
+        {carregando && <Feedback>Carregando pacotes…</Feedback>}
+        {!carregando && erro && <Feedback>{erro}</Feedback>}
+        {!carregando && !erro && itens.length === 0 && (
+          <Feedback>Nenhum pacote encontrado para os filtros informados.</Feedback>
+        )}
+        {!carregando && !erro && itens.length > 0 && (
+          <List>
+            {itens.map((excursao) => (
+              <ExcursionCard key={excursao.id_excursao} excursao={excursao} />
+            ))}
+          </List>
+        )}
+      </ExcursionsSection>
     </Page>
   )
 }

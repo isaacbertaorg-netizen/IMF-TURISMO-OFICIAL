@@ -6,7 +6,7 @@
 // número verificado e templates aprovados) para este caso de uso.
 // ===========================================================================
 
-import { formatarDataBR, formatarMoeda } from './api.js'
+import { api, formatarDataBR, formatarMoeda } from './api.js'
 
 // Fallback caso a rota pública /api/config não responda: o pagamento não pode
 // ficar bloqueado por causa de uma chamada de configuração.
@@ -16,6 +16,33 @@ export function linkWhatsApp(numero, mensagem) {
   // wa.me exige apenas dígitos, com DDI (55) + DDD + número.
   const digitos = String(numero || WHATSAPP_PADRAO).replace(/\D/g, '')
   return `https://wa.me/${digitos}?text=${encodeURIComponent(mensagem)}`
+}
+
+// Número configurado no back-end, buscado uma única vez por sessão. Se a rota
+// falhar, o fallback garante que o rodapé continue com um contato válido.
+let whatsappCache = null
+
+export async function obterWhatsApp() {
+  if (whatsappCache) return whatsappCache
+  try {
+    const resp = await api.get('/api/config')
+    whatsappCache = resp.data?.whatsapp_numero || WHATSAPP_PADRAO
+  } catch {
+    whatsappCache = WHATSAPP_PADRAO
+  }
+  return whatsappCache
+}
+
+// Formata só para exibição: (61) 9638-9634. Aceita números com ou sem o 9.
+export function formatarWhatsApp(numero) {
+  const digitos = String(numero || WHATSAPP_PADRAO).replace(/\D/g, '')
+  if (digitos.length === 13) {
+    return `+${digitos.slice(0, 2)} (${digitos.slice(2, 4)}) ${digitos.slice(4, 9)}-${digitos.slice(9)}`
+  }
+  if (digitos.length === 12) {
+    return `+${digitos.slice(0, 2)} (${digitos.slice(2, 4)}) ${digitos.slice(4, 8)}-${digitos.slice(8)}`
+  }
+  return numero
 }
 
 // Mensagem já com os dados da reserva: a dona da empresa recebe tudo pronto
