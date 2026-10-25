@@ -1,7 +1,7 @@
 // ===========================================================================
 // IMF TURISMO — rodapé público
 // Repete os caminhos principais, concentra os canais de atendimento e deixa
-// à vista os dados institucionais (e-mail, WhatsApp, CNPJ e endereço).
+// à vista os dados institucionais (e-mail, WhatsApp, Cadastur e endereço).
 // Some no painel administrativo para não misturar com a área interna.
 // ===========================================================================
 
@@ -278,7 +278,7 @@ function Footer() {
         <Column>
           <ColumnTitle>Navegue</ColumnTitle>
           <FooterLink to="/">Início</FooterLink>
-          <FooterLink to="/">Excursões</FooterLink>
+          <FooterLink to="/excursoes">Excursões</FooterLink>
           <FooterLink to="/sobre">Sobre nós</FooterLink>
           <FooterLink to="/minhas-reservas">Minhas Reservas</FooterLink>
           <FooterLink to="/perfil">Meu Perfil</FooterLink>

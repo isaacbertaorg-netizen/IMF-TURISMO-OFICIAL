@@ -328,7 +328,7 @@ function MinhasReservas() {
       {!carregando && erro && <Feedback>{erro}</Feedback>}
       {!carregando && !erro && reservas.length === 0 && (
         <Feedback>
-          Você ainda não tem reservas. <Link to="/">Confira nossos pacotes!</Link>
+          Você ainda não tem reservas. <Link to="/excursoes">Confira nossos pacotes!</Link>
         </Feedback>
       )}
       {!carregando &&

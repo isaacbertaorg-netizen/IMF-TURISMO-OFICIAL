@@ -168,7 +168,7 @@ function ExcursionDetails() {
   if (!excursao) {
     return (
       <Page>
-        <Back to="/">← Voltar à página inicial</Back>
+        <Back to="/excursoes">← Voltar às excursões</Back>
         <Feedback>{naoEncontrada ? 'Excursão não encontrada.' : 'Falha ao carregar. Tente novamente.'}</Feedback>
       </Page>
     )
@@ -180,7 +180,7 @@ function ExcursionDetails() {
 
   return (
     <Page>
-      <Back to="/">← Voltar à página inicial</Back>
+      <Back to="/excursoes">← Voltar às excursões</Back>
       <Card>
         <Photo
           src={escolherFoto(excursao)}

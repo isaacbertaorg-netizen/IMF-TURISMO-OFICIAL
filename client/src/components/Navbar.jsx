@@ -6,7 +6,7 @@
 
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import styled, { css } from 'styled-components'
+import styled from 'styled-components'
 import { useAuth } from '../lib/auth.jsx'
 import { colors } from '../theme.js'
 import logoUrl from '../assets/logo-imf-turismo.jfif'
@@ -87,11 +87,16 @@ const Nav = styled.nav`
   }
 `
 
-const navItemBase = css`
+const NavItem = styled(NavLink)`
   font-size: 1rem;
   color: ${colors.navy};
   padding-bottom: 0.15rem;
   border-bottom: 2px solid transparent;
+
+  &.active {
+    font-weight: 700;
+    border-bottom-color: ${colors.primary};
+  }
 
   @media (width <= 960px) {
     padding: 0.7rem 0;
@@ -100,27 +105,12 @@ const navItemBase = css`
     &:last-child {
       border-bottom: 0;
     }
-  }
-`
 
-const NavItem = styled(NavLink)`
-  ${navItemBase}
-
-  &.active {
-    font-weight: 700;
-    border-bottom-color: ${colors.primary};
-
-    @media (width <= 960px) {
+    &.active {
       color: ${colors.primary};
       border-bottom-color: #eef0f2;
     }
   }
-`
-
-// "Excursões" leva à lista de pacotes na página inicial. Como o destino é o
-// mesmo de "Início", usamos Link simples para não sublinhar os dois juntos.
-const NavItemLink = styled(Link)`
-  ${navItemBase}
 `
 
 const Avatar = styled.button`
@@ -192,9 +182,9 @@ function Navbar() {
           <NavItem to="/" end onClick={fecharMenu}>
             Início
           </NavItem>
-          <NavItemLink to="/#excursoes" onClick={fecharMenu}>
+          <NavItem to="/excursoes" onClick={fecharMenu}>
             Excursões
-          </NavItemLink>
+          </NavItem>
           <NavItem to="/sobre" onClick={fecharMenu}>
             Sobre nós
           </NavItem>

@@ -6,10 +6,11 @@
 
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
-import { EMAIL_CONTATO, FACEBOOK_URL, HORARIO_ATENDIMENTO, INSTAGRAM_URL, TAGLINE } from '../lib/contato.js'
+import { CADASTUR, EMAIL_CONTATO, FACEBOOK_URL, HORARIO_ATENDIMENTO, INSTAGRAM_URL, TAGLINE } from '../lib/contato.js'
 import { useWhatsApp } from '../lib/useWhatsApp.js'
 import { linkWhatsApp } from '../lib/whatsapp.js'
 import { colors } from '../theme.js'
+import fotoIara from '../assets/home/iara.jpg'
 
 const Page = styled.main`
   max-width: 820px;
@@ -106,6 +107,43 @@ const ContactLink = styled.a`
   font-weight: 600;
 `
 
+const OwnerCard = styled.section`
+  margin-top: 1.25rem;
+  background-color: ${colors.background};
+  border-radius: 1rem;
+  box-shadow: 0 8px 24px rgb(15 45 82 / 0.08);
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+  gap: 1.5rem;
+  align-items: center;
+
+  @media (width <= 720px) {
+    grid-template-columns: 1fr;
+  }
+`
+
+const OwnerPhoto = styled.img`
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  object-position: center 22%;
+  border-radius: 1rem;
+`
+
+const OwnerContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`
+
+const OwnerTitle = styled.h2`
+  color: ${colors.navy};
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.25;
+`
+
 function Sobre() {
   const numero = useWhatsApp()
   const mensagem = 'Olá! Vim pelo site da IMF Turismo e gostaria de saber mais sobre os pacotes.'
@@ -143,7 +181,7 @@ function Sobre() {
         </Commitments>
 
         <Actions>
-          <PrimaryAction to="/">Ver pacotes</PrimaryAction>
+          <PrimaryAction to="/excursoes">Ver pacotes</PrimaryAction>
           <WhatsAppAction
             href={linkWhatsApp(numero, mensagem)}
             target="_blank"
@@ -166,8 +204,31 @@ function Sobre() {
               Facebook: /{facebook}
             </ContactLink>
           )}
+          {CADASTUR && <span>Cadastur {CADASTUR}</span>}
         </Contact>
       </Card>
+
+      <OwnerCard>
+        <OwnerPhoto src={fotoIara} alt="Iara Maria Ferreira, fundadora da IMF Turismo" loading="lazy" />
+        <OwnerContent>
+          <OwnerTitle>IMF são as iniciais de Iara Maria Ferreira.</OwnerTitle>
+          <Paragraph>
+            A empresa nasceu em 2011, quando Iara buscou um pacote de viagem e acabou assumindo a
+            organização. Desde então, ela se especializou, construiu uma rede de contatos e hoje
+            conduz excursões para Caldas Novas e o Nordeste.
+          </Paragraph>
+          <Paragraph>
+            Como guia de turismo com Cadastur, Iara acompanha cada grupo de perto — do primeiro
+            contato ao retorno. É esse cuidado que faz o atendimento da IMF ser individual de
+            verdade.
+          </Paragraph>
+          <Paragraph>
+            <Strong>Iara Maria Ferreira</Strong> — Fundadora e Guia de Turismo
+            <br />
+            Cadastur {CADASTUR}
+          </Paragraph>
+        </OwnerContent>
+      </OwnerCard>
     </Page>
   )
 }

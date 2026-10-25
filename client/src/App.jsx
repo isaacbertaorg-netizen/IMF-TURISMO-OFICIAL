@@ -1,6 +1,6 @@
 // ===========================================================================
 // IMF TURISMO — rotas do front-end (seções 3.1 a 3.11 do PRODUCT.md)
-// Públicas: /, /excursoes/:id, /login, /cadastro. Cliente: /excursoes/:id/
+// Públicas: /, /excursoes, /excursoes/:id, /login, /cadastro. Cliente: /excursoes/:id/
 // reservar, /minhas-reservas, /perfil (ProtectedRoute). Admin: /admin/login
 // (oculta) e /admin/* (AdminRoute com sidebar).
 // ===========================================================================
@@ -19,6 +19,7 @@ import AdminLogin from './pages/AdminLogin.jsx'
 import AdminReservas from './pages/AdminReservas.jsx'
 import Cadastro from './pages/Cadastro.jsx'
 import EsqueciSenha from './pages/EsqueciSenha.jsx'
+import Excursoes from './pages/Excursoes.jsx'
 import ExcursionDetails from './pages/ExcursionDetails.jsx'
 import Home from './pages/Home.jsx'
 import Login from './pages/Login.jsx'
@@ -64,6 +65,7 @@ function App() {
           <Navbar />
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/excursoes" element={<Excursoes />} />
             <Route path="/excursoes/:id" element={<ExcursionDetails />} />
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<Cadastro />} />

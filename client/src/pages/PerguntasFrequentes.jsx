@@ -111,9 +111,9 @@ function PerguntasFrequentes() {
         <Item>
           <Question>Como faço uma reserva?</Question>
           <Answer>
-            Escolha uma excursão na página inicial, clique em “Reservar”, informe a quantidade de
-            pessoas e confirme. É necessário ter uma conta no site. Depois da reserva, o pagamento
-            é combinado diretamente com a IMF Turismo pelo WhatsApp.
+            Escolha uma excursão na página de excursões, clique em “Reservar”, informe a quantidade
+            de pessoas e confirme. É necessário ter uma conta no site. Depois da reserva, o
+            pagamento é combinado diretamente com a IMF Turismo pelo WhatsApp.
           </Answer>
         </Item>
 

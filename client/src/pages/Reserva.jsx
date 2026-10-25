@@ -359,7 +359,7 @@ function Reserva() {
       <Page>
         <Title>Confirmar Reserva</Title>
         {erro ? <ErrorText>{erro}</ErrorText> : <p>Carregando…</p>}
-        <Back to="/">Voltar à página inicial</Back>
+        <Back to="/excursoes">← Voltar às excursões</Back>
       </Page>
     )
   }
@@ -511,7 +511,7 @@ function Reserva() {
           </ConfirmButton>
         </Counter>
       </Card>
-      <Back to="/">Voltar à página inicial</Back>
+      <Back to="/excursoes">← Voltar às excursões</Back>
     </Page>
   )
 }

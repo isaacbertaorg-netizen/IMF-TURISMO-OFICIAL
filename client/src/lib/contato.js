@@ -19,8 +19,8 @@ export const HORARIO_ATENDIMENTO = 'Das 8h às 20h'
 // A IMF não possui CNPJ (informado pela empresa); mantido vazio para não exibir.
 export const CNPJ = ''
 
-// Número do CADASTUR (a empresa informou que possui; falta o número).
-export const CADASTUR = ''
+// Número do CADASTUR da fundadora (Guia de Turismo).
+export const CADASTUR = '07.949745.53-5'
 
 // Endereço comercial (opcional; não informado até o momento).
 export const ENDERECO = ''
