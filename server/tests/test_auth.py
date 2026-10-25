@@ -89,6 +89,30 @@ def test_login_retorna_token(client):
     assert resp.json()["access_token"]
 
 
+def test_login_sem_lembrar_usa_validade_padrao(client):
+    import jwt
+
+    client.post("/api/cadastro", json=DADOS_CADASTRO)
+    resp = client.post("/api/login", json={"email": "maria@teste.com", "senha": "segredo123"})
+    payload = jwt.decode(resp.json()["access_token"], options={"verify_signature": False})
+    # Sessão comum: 60 minutos por padrão (com folga para o tempo do teste).
+    assert payload["exp"] - payload["iat"] <= 2 * 60 * 60
+
+
+def test_login_com_lembrar_estende_a_sessao_por_30_dias(client):
+    import jwt
+
+    client.post("/api/cadastro", json=DADOS_CADASTRO)
+    resp = client.post(
+        "/api/login",
+        json={"email": "maria@teste.com", "senha": "segredo123", "lembrar": True},
+    )
+    assert resp.status_code == 200
+    payload = jwt.decode(resp.json()["access_token"], options={"verify_signature": False})
+    # 30 dias (o front guarda o token para não pedir a senha novamente).
+    assert payload["exp"] - payload["iat"] >= 29 * 24 * 60 * 60
+
+
 def test_login_com_senha_errada_retorna_401(client):
     client.post("/api/cadastro", json=DADOS_CADASTRO)
     resp = client.post("/api/login", json={"email": "maria@teste.com", "senha": "errada123"})

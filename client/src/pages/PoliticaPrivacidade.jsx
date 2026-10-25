@@ -92,7 +92,7 @@ function PoliticaPrivacidade() {
         <Paragraph>
           A IMF Turismo é a controladora dos dados pessoais coletados neste site. O canal para
           assuntos de privacidade e proteção de dados é o e-mail{' '}
-          <Strong>isaacbertaorg@gmail.com</Strong>. Você também pode falar com a equipe pelo
+          <Strong>imfturismooficial@gmail.com</Strong>. Você também pode falar com a equipe pelo
           WhatsApp divulgado na página inicial.
         </Paragraph>
 
@@ -199,7 +199,7 @@ function PoliticaPrivacidade() {
         </List>
         <Paragraph>
           Para exercer esses direitos, envie um pedido para{' '}
-          <Strong>isaacbertaorg@gmail.com</Strong>. Podemos solicitar informações para confirmar sua
+          <Strong>imfturismooficial@gmail.com</Strong>. Podemos solicitar informações para confirmar sua
           identidade e evitar acesso indevido. Responderemos dentro dos prazos legais.
         </Paragraph>
 
@@ -253,7 +253,7 @@ function PoliticaPrivacidade() {
         <Subtitle>13. Contato</Subtitle>
         <Paragraph>
           Dúvidas sobre privacidade, solicitações de titular ou assuntos dos Termos de Uso:{' '}
-          <Strong>isaacbertaorg@gmail.com</Strong>.
+          <Strong>imfturismooficial@gmail.com</Strong>.
         </Paragraph>
       </Card>
 

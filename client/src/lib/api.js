@@ -19,9 +19,10 @@ export const api = axios.create({
 })
 
 // Anexa o JWT de sessão em todas as requisições autenticadas.
-// O token vive em localStorage (chave imf_token); rotas públicas seguem sem header.
+// O token vive em localStorage ("Lembrar de mim") ou sessionStorage (sessão
+// do navegador); rotas públicas seguem sem header.
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('imf_token')
+  const token = localStorage.getItem('imf_token') || sessionStorage.getItem('imf_token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }

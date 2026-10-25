@@ -96,7 +96,12 @@ def login(dados: dict[str, Any]) -> dict[str, Any]:
         # Mesma mensagem para usuário inexistente ou senha errada (não vaza info).
         raise CredenciaisInvalidasError("E-mail ou senha invalidos")
 
-    token = criar_token(usuario_id=cliente["id_cliente"], papel="cliente")
+    # "Lembrar de mim" alonga a sessão para o cliente não digitar a senha a
+    # cada visita; sem a opção, vale a validade curta padrão.
+    minutos = settings.jwt_remember_expire_minutes if dados.get("lembrar") else None
+    token = criar_token(
+        usuario_id=cliente["id_cliente"], papel="cliente", minutos=minutos
+    )
     return {
         "access_token": token,
         "token_type": "bearer",

@@ -57,6 +57,11 @@ class Settings:
         self.jwt_algorithm = os.getenv("JWT_ALGORITHM", "HS256")
         # Validade do token em minutos.
         self.jwt_expire_minutes = int(os.getenv("JWT_EXPIRE_MINUTES", "60"))
+        # "Lembrar de mim": validade longa para o cliente não digitar a senha
+        # a cada visita. 30 dias por padrão.
+        self.jwt_remember_expire_minutes = int(
+            os.getenv("JWT_REMEMBER_EXPIRE_MINUTES", str(60 * 24 * 30))
+        )
 
         # --------------------- Recuperação de senha -------------------------
         # URL pública do front-end usada para montar o link enviado por e-mail.

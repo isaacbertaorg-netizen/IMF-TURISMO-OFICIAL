@@ -29,18 +29,21 @@ def verificar_senha(senha: str, hash_armazenado: str) -> bool:
         return False
 
 
-def criar_token(usuario_id: int, papel: str) -> str:
+def criar_token(usuario_id: int, papel: str, minutos: int | None = None) -> str:
     """Emite um JWT assinado com o id e o papel do usuário.
 
     O papel ('cliente' ou 'admin') é usado pelas dependências de autorização
     para validar o acesso às rotas (seção 6.2).
+
+    `minutos` permite uma validade maior no login com "Lembrar de mim", sem
+    mexer na validade padrão das demais sessões.
     """
     agora = datetime.now(timezone.utc)
     payload = {
         "sub": str(usuario_id),
         "papel": papel,
         "iat": agora,
-        "exp": agora + timedelta(minutes=settings.jwt_expire_minutes),
+        "exp": agora + timedelta(minutes=minutos or settings.jwt_expire_minutes),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 

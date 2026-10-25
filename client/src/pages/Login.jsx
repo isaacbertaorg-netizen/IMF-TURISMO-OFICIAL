@@ -29,12 +29,34 @@ const Signup = styled.p`
   color: ${colors.textMuted};
 `
 
+// "Lembrar de mim": mantém a sessão no navegador para não pedir a senha a
+// cada visita. Fica desmarcável para quem usa um computador compartilhado.
+const Remember = styled.label`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: ${colors.textMuted};
+  cursor: pointer;
+
+  input {
+    width: 16px;
+    height: 16px;
+    accent-color: ${colors.primary};
+    cursor: pointer;
+  }
+`
+
 function Login() {
   const { loginCliente } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
+  // Marcado por padrão: o cliente não precisa digitar a senha de novo ao
+  // voltar ao site em outro dia. Pode ser desmarcado em aparelhos compartilhados.
+  const [lembrar, setLembrar] = useState(true)
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
 
@@ -43,7 +65,7 @@ function Login() {
     setErro('')
     setEnviando(true)
     try {
-      await loginCliente(email.trim(), senha)
+      await loginCliente(email.trim(), senha, lembrar)
       navigate(location.state?.from ?? '/', { replace: true })
     } catch (err) {
       // Mensagem do back sem expor detalhes internos.
@@ -73,6 +95,14 @@ function Login() {
           onChange={(e) => setSenha(e.target.value)}
           autoComplete="current-password"
         />
+        <Remember>
+          <input
+            type="checkbox"
+            checked={lembrar}
+            onChange={(e) => setLembrar(e.target.checked)}
+          />
+          Lembrar de mim neste dispositivo
+        </Remember>
         <Forgot to="/esqueci-senha">Esqueci minha senha</Forgot>
         {erro && <ErrorText>{erro}</ErrorText>}
         <PrimaryButton type="submit" disabled={enviando}>

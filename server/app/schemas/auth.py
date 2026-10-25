@@ -11,6 +11,9 @@ class LoginRequest(BaseModel):
 
     email: EmailStr
     senha: str = Field(min_length=6)
+    # "Lembrar de mim": quando marcado, o token dura mais (30 dias) e o front
+    # guarda a sessão no navegador para não pedir a senha a cada visita.
+    lembrar: bool = False
 
 
 class LoginAdminRequest(BaseModel):
