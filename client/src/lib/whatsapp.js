@@ -41,3 +41,28 @@ export function mensagemPagamento(reserva) {
 
   return linhas.join('\n')
 }
+
+// Fora do prazo o cancelamento automático fica bloqueado, mas o cliente
+// ainda pode pedir a análise da empresa pelo WhatsApp — o reembolso ou
+// crédito depende da política e é decidido manualmente.
+export function mensagemCancelamento(reserva) {
+  const linhas = [
+    'Olá! Gostaria de solicitar o cancelamento de uma reserva na IMF Turismo.',
+    '',
+    `Reserva: #${reserva.id_reserva}`,
+  ]
+
+  if (reserva.destino) linhas.push(`Pacote: ${reserva.destino}`)
+  if (reserva.data_ida) {
+    linhas.push(
+      `Período: ${formatarDataBR(reserva.data_ida)} a ${formatarDataBR(reserva.data_volta)}`,
+    )
+  }
+  linhas.push(`Pessoas: ${reserva.qtd_vagas}`)
+  linhas.push(
+    '',
+    'A reserva está fora do prazo de cancelamento automático. Gostaria de saber as opções de reembolso ou crédito.',
+  )
+
+  return linhas.join('\n')
+}

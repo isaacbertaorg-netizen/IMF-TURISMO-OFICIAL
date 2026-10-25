@@ -22,6 +22,34 @@ const Hint = styled.p`
   text-align: center;
 `
 
+const ConsentRow = styled.div`
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  text-align: left;
+
+  input {
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-top: 0.2rem;
+    accent-color: ${colors.primary};
+    flex-shrink: 0;
+  }
+`
+
+const ConsentText = styled.span`
+  color: ${colors.navy};
+  font-size: 0.82rem;
+  line-height: 1.4;
+`
+
+const PolicyLink = styled(Link)`
+  color: ${colors.primary};
+  font-weight: 600;
+  text-decoration: underline;
+`
+
 const CAMPOS_VAZIOS = {
   nome: '',
   cpf: '',
@@ -36,6 +64,7 @@ const CAMPOS_VAZIOS = {
   uf: '',
   senha: '',
   confirmar_senha: '',
+  aceite_privacidade: false,
 }
 
 function Cadastro() {
@@ -60,6 +89,10 @@ function Cadastro() {
       setErro('CPF inválido. Confira os números digitados.')
       return
     }
+    if (!form.aceite_privacidade) {
+      setErro('É necessário aceitar a Política de Privacidade e os Termos de Uso.')
+      return
+    }
     setEnviando(true)
     try {
       await api.post('/api/cadastro', {
@@ -76,6 +109,7 @@ function Cadastro() {
         uf: form.uf.trim().toUpperCase(),
         senha: form.senha,
         confirmar_senha: form.confirmar_senha,
+        aceite_privacidade: true,
       })
       // Conta criada; autentica em seguida para entrar direto.
       await loginCliente(form.email.trim(), form.senha)
@@ -97,6 +131,28 @@ function Cadastro() {
         <EnderecoForm valores={form} onChange={atualizar} />
         <PillInput type="password" placeholder="Senha (mín. 6)" required minLength={6} value={form.senha} onChange={(e) => atualizar('senha', e.target.value)} autoComplete="new-password" />
         <PillInput type="password" placeholder="Confirme sua senha" required minLength={6} value={form.confirmar_senha} onChange={(e) => atualizar('confirmar_senha', e.target.value)} autoComplete="new-password" />
+        <ConsentRow>
+          <input
+            id="aceite-privacidade-cadastro"
+            type="checkbox"
+            required
+            checked={form.aceite_privacidade}
+            onChange={(e) => atualizar('aceite_privacidade', e.target.checked)}
+          />
+          <ConsentText>
+            <label htmlFor="aceite-privacidade-cadastro">
+              Li e aceito a{' '}
+              <PolicyLink to="/politica-de-privacidade" target="_blank" rel="noreferrer">
+                Política de Privacidade
+              </PolicyLink>{' '}
+              e os{' '}
+              <PolicyLink to="/politica-de-privacidade" target="_blank" rel="noreferrer">
+                Termos de Uso
+              </PolicyLink>
+              .
+            </label>
+          </ConsentText>
+        </ConsentRow>
         {erro && <ErrorText>{erro}</ErrorText>}
         <PrimaryButton type="submit" disabled={enviando}>
           {enviando ? 'Criando…' : 'Criar conta'}

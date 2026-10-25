@@ -59,7 +59,10 @@ def test_editar_passageiros_da_propria_reserva(client, fake_supabase, cliente_to
     ]
     resp = client.put(
         f"/api/reservas/{criada['id_reserva']}/passageiros",
-        json={"passageiros": novos},
+        json={
+            "passageiros": novos,
+            "declaracao_responsavel_menor": True,
+        },
         headers=headers,
     )
 
@@ -74,6 +77,17 @@ def test_editar_passageiros_da_propria_reserva(client, fake_supabase, cliente_to
     )
     assert sorted(p["nome_passageiro"] for p in passageiros) == ["Joao Silva", "Maria Silva"]
 
+    reserva = (
+        fake_supabase.table("reserva")
+        .select("*")
+        .eq("id_reserva", criada["id_reserva"])
+        .maybe_single()
+        .execute()
+        .data
+    )
+    assert reserva["declaracao_responsavel_menor"] is True
+    assert reserva["declaracao_responsavel_menor_versao"] == "1.0"
+
     # A quantidade de vagas não muda, então o estoque segue intacto.
     excursao = (
         fake_supabase.table("excursao")
@@ -84,6 +98,34 @@ def test_editar_passageiros_da_propria_reserva(client, fake_supabase, cliente_to
         .data
     )
     assert excursao["vagas_disponiveis"] == 18
+
+
+def test_editar_passageiros_com_menor_exige_declaracao(client, fake_supabase, cliente_token):
+    seed_excursao(fake_supabase)
+    headers = {"Authorization": f"Bearer {cliente_token}"}
+    criada = fazer_reserva(client, headers, qtd=2).json()
+
+    novos = [
+        {"nome_passageiro": "Maria Silva", "cpf": "52998224725", "data_nascimento": "1985-03-20"},
+        {"nome_passageiro": "Joao Silva", "cpf": "11144477735", "data_nascimento": "2010-07-11"},
+    ]
+    resp = client.put(
+        f"/api/reservas/{criada['id_reserva']}/passageiros",
+        json={"passageiros": novos},
+        headers=headers,
+    )
+
+    assert resp.status_code == 400
+    assert "responsável legal" in resp.json()["detail"]
+    # A lista original é preservada quando a declaração falta.
+    passageiros = (
+        fake_supabase.table("passageiro")
+        .select("*")
+        .eq("id_reserva", criada["id_reserva"])
+        .execute()
+        .data
+    )
+    assert all(p["nome_passageiro"].startswith("Passageiro") for p in passageiros)
 
 
 def test_editar_passageiros_rejeita_qtd_divergente(client, fake_supabase, cliente_token):

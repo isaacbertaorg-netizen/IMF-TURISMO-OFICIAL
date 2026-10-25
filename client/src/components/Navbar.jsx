@@ -80,10 +80,21 @@ const Avatar = styled.button`
   background-color: ${colors.inputBg};
   color: ${colors.navy};
   font-weight: 700;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`
+
+const AvatarImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 `
 
 function Navbar() {
-  const { autenticado, ehAdmin } = useAuth()
+  const { autenticado, ehAdmin, fotoPerfil } = useAuth()
   const navigate = useNavigate()
   // Admin não tem perfil de cliente (GET /api/perfil exige token de cliente),
   // então o link some para ele e entra o atalho de volta ao painel.
@@ -114,7 +125,13 @@ function Navbar() {
           title={!autenticado ? 'Entrar' : ehAdmin ? 'Painel administrativo' : 'Meu perfil'}
           onClick={() => navigate(destinoAvatar)}
         >
-          {autenticado ? '●' : '○'}
+          {autenticado && !ehAdmin && fotoPerfil ? (
+            <AvatarImage src={fotoPerfil} alt="Foto de perfil" />
+          ) : autenticado ? (
+            '●'
+          ) : (
+            '○'
+          )}
         </Avatar>
       </Inner>
     </Bar>

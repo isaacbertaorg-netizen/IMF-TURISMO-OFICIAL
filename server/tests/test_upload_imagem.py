@@ -5,6 +5,7 @@
 # ===========================================================================
 
 import pytest
+from storage3.exceptions import StorageApiError
 
 from app.core import storage
 from app.core.exceptions import ArquivoInvalidoError
@@ -40,6 +41,63 @@ def test_salvar_imagem_rejeita_arquivo_grande(monkeypatch):
 
     with pytest.raises(ArquivoInvalidoError):
         storage.salvar_imagem(b"\x00" * (1024 * 1024 + 1), "image/png")
+
+
+class _BucketAusente:
+    """Simula o Storage real quando o bucket ainda não existe.
+
+    A lib storage3 devolve o status como string ("404") em algumas versões;
+    o teste fixa esse contrato para não voltar a quebrar o primeiro upload.
+    """
+
+    def __init__(self, status="404"):
+        self.status = status
+        self.criados: list[tuple[str, dict]] = []
+
+    def get_bucket(self, nome):
+        raise StorageApiError("Bucket not found", "Bucket not found", self.status)
+
+    def create_bucket(self, nome, options=None):
+        self.criados.append((nome, options or {}))
+
+
+class _StorageFalso:
+    def __init__(self, bucket):
+        self._bucket = bucket
+
+    def get_bucket(self, nome):
+        return self._bucket.get_bucket(nome)
+
+    def create_bucket(self, nome, options=None):
+        return self._bucket.create_bucket(nome, options)
+
+
+def _cliente_falso(bucket):
+    class _Cliente:
+        storage = _StorageFalso(bucket)
+
+    return _Cliente()
+
+
+def test_garantir_bucket_cria_quando_status_vem_como_texto(monkeypatch):
+    # Regressão: o primeiro upload de perfil falhava porque o 404 chegava
+    # como string e a comparação com o inteiro 404 não batia.
+    bucket = _BucketAusente(status="404")
+    monkeypatch.setattr(storage.supabase, "get_supabase", lambda: _cliente_falso(bucket))
+
+    storage._garantir_bucket("perfil-imagens")
+
+    assert bucket.criados == [("perfil-imagens", {"public": True})]
+
+
+def test_garantir_bucket_propaga_erro_que_nao_e_404(monkeypatch):
+    bucket = _BucketAusente(status="403")
+    monkeypatch.setattr(storage.supabase, "get_supabase", lambda: _cliente_falso(bucket))
+
+    with pytest.raises(StorageApiError):
+        storage._garantir_bucket("perfil-imagens")
+
+    assert bucket.criados == []
 
 
 def test_upload_exige_admin(client, cliente_token):

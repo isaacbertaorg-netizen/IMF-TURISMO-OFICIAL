@@ -27,6 +27,8 @@ class CadastroCliente(BaseModel):
     uf: str = Field(min_length=2, max_length=2)
     senha: str = Field(min_length=6, max_length=72)
     confirmar_senha: str = Field(min_length=6, max_length=72)
+    # O aceite é obrigatório no cadastro: sem ele a conta não é criada.
+    aceite_privacidade: bool
 
     @field_validator("cpf")
     @classmethod
@@ -38,6 +40,16 @@ class CadastroCliente(BaseModel):
         if not cpf_valido(digitos):
             raise ValueError("CPF inválido")
         return digitos
+
+    @field_validator("aceite_privacidade")
+    @classmethod
+    def validar_aceite_privacidade(cls, valor: bool) -> bool:
+        """O cadastro só prossegue com o aceite explícito da política."""
+        if not valor:
+            raise ValueError(
+                "É necessário aceitar a Política de Privacidade e os Termos de Uso"
+            )
+        return valor
 
     @field_validator("cep")
     @classmethod
@@ -99,3 +111,16 @@ class PerfilUpdate(BaseModel):
         if valor is None:
             return None
         return valor.strip().upper()
+
+
+class ConsentimentosUpdate(BaseModel):
+    """Autorizações LGPD editáveis no perfil.
+
+    O aceite da política é obrigatório; as demais autorizações são opcionais
+    e podem ser revogadas a qualquer momento (basta enviar `false`).
+    """
+
+    aceite_privacidade: bool
+    consentimento_imagem: bool = False
+    consentimento_marketing: bool = False
+    consentimento_compartilhamento: bool = False

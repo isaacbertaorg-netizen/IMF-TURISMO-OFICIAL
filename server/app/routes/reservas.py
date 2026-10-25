@@ -34,6 +34,7 @@ def criar_reserva(
         # mode="json" serializa as datas para ISO: o client real do Supabase
         # (httpx) não aceita objetos date no payload (500 em produção).
         passageiros=[p.model_dump(mode="json") for p in dados.passageiros],
+        declaracao_responsavel_menor=dados.declaracao_responsavel_menor,
     )
 
 
@@ -63,4 +64,5 @@ def atualizar_passageiros(
         id_cliente=cliente["id_cliente"],
         id_reserva=id_reserva,
         passageiros=[p.model_dump(mode="json") for p in dados.passageiros],
+        declaracao_responsavel_menor=dados.declaracao_responsavel_menor,
     )

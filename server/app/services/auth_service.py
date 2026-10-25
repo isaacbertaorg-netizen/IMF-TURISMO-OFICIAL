@@ -6,6 +6,7 @@
 # ===========================================================================
 
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
 from app.config import settings
@@ -15,6 +16,7 @@ from app.core.exceptions import (
     TokenResetInvalidoError,
     UsuarioJaCadastradoError,
 )
+from app.core.lgpd import VERSAO_CONSENTIMENTOS, VERSAO_POLITICA_PRIVACIDADE
 from app.core.security import (
     criar_token,
     criar_token_reset,
@@ -40,6 +42,7 @@ def cadastrar_cliente(dados: dict[str, Any]) -> dict[str, Any]:
         UsuarioJaCadastradoError: CPF ou e-mail já existentes (colunas UNIQUE).
     """
     try:
+        agora = datetime.now(timezone.utc).isoformat()
         linha = (
             supabase.get_supabase()
             .table("cliente")
@@ -57,6 +60,17 @@ def cadastrar_cliente(dados: dict[str, Any]) -> dict[str, Any]:
                     "cidade": dados["cidade"],
                     "uf": dados["uf"],
                     "senha_hash": gerar_hash_senha(dados["senha"]),
+                    # Registro do aceite obrigatório e da versão do documento.
+                    # As autorizações opcionais nascem desligadas e podem ser
+                    # ativadas depois no Perfil.
+                    "aceite_privacidade": True,
+                    "aceite_privacidade_em": agora,
+                    "aceite_privacidade_versao": VERSAO_POLITICA_PRIVACIDADE,
+                    "consentimento_imagem": False,
+                    "consentimento_marketing": False,
+                    "consentimento_compartilhamento": False,
+                    "consentimentos_versao": VERSAO_CONSENTIMENTOS,
+                    "consentimentos_atualizado_em": agora,
                 }
             )
             .execute()
@@ -83,7 +97,12 @@ def login(dados: dict[str, Any]) -> dict[str, Any]:
         raise CredenciaisInvalidasError("E-mail ou senha invalidos")
 
     token = criar_token(usuario_id=cliente["id_cliente"], papel="cliente")
-    return {"access_token": token, "token_type": "bearer"}
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        # Pode não existir em bancos antigos; o front trata None.
+        "foto_perfil_url": cliente.get("foto_perfil_url"),
+    }
 
 
 def login_admin(dados: dict[str, Any]) -> dict[str, Any]:

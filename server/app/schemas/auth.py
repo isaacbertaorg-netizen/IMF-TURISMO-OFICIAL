@@ -25,6 +25,9 @@ class TokenResponse(BaseModel):
 
     access_token: str
     token_type: str = "bearer"
+    # Foto do avatar do cliente (None para admin). O front guarda em
+    # localStorage para exibir no ícone sem uma requisição extra por página.
+    foto_perfil_url: str | None = None
 
 
 class EsqueciSenhaRequest(BaseModel):

@@ -13,28 +13,40 @@ function lerSessao() {
   return {
     token: localStorage.getItem('imf_token'),
     papel: localStorage.getItem('imf_papel'),
+    fotoPerfil: localStorage.getItem('imf_foto_perfil'),
   }
 }
 
 export function AuthProvider({ children }) {
   const [sessao, setSessao] = useState(lerSessao)
 
-  const salvar = useCallback((accessToken, papel) => {
+  const salvar = useCallback((accessToken, papel, fotoPerfil = null) => {
     localStorage.setItem('imf_token', accessToken)
     localStorage.setItem('imf_papel', papel)
-    setSessao({ token: accessToken, papel })
+    // A foto é guardada junto da sessão para o avatar da navbar aparecer
+    // imediatamente, sem uma requisição extra em cada página.
+    if (fotoPerfil) localStorage.setItem('imf_foto_perfil', fotoPerfil)
+    else localStorage.removeItem('imf_foto_perfil')
+    setSessao({ token: accessToken, papel, fotoPerfil })
   }, [])
 
   const sair = useCallback(() => {
     localStorage.removeItem('imf_token')
     localStorage.removeItem('imf_papel')
-    setSessao({ token: null, papel: null })
+    localStorage.removeItem('imf_foto_perfil')
+    setSessao({ token: null, papel: null, fotoPerfil: null })
+  }, [])
+
+  const atualizarFotoPerfil = useCallback((fotoPerfil) => {
+    if (fotoPerfil) localStorage.setItem('imf_foto_perfil', fotoPerfil)
+    else localStorage.removeItem('imf_foto_perfil')
+    setSessao((atual) => ({ ...atual, fotoPerfil }))
   }, [])
 
   const loginCliente = useCallback(
     async (email, senha) => {
       const resp = await api.post('/api/login', { email, senha })
-      salvar(resp.data.access_token, 'cliente')
+      salvar(resp.data.access_token, 'cliente', resp.data.foto_perfil_url ?? null)
     },
     [salvar],
   )
@@ -51,13 +63,15 @@ export function AuthProvider({ children }) {
     () => ({
       token: sessao.token,
       papel: sessao.papel,
+      fotoPerfil: sessao.fotoPerfil,
       autenticado: Boolean(sessao.token),
       ehAdmin: sessao.papel === 'admin',
       loginCliente,
       loginAdmin,
+      atualizarFotoPerfil,
       sair,
     }),
-    [sessao, loginCliente, loginAdmin, sair],
+    [sessao, loginCliente, loginAdmin, atualizarFotoPerfil, sair],
   )
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>

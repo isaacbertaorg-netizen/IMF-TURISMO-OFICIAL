@@ -22,6 +22,7 @@ DADOS_CADASTRO = {
     "uf": "go",
     "senha": "segredo123",
     "confirmar_senha": "segredo123",
+    "aceite_privacidade": True,
 }
 
 

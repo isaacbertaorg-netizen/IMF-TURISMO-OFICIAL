@@ -20,6 +20,7 @@ DADOS_CADASTRO = {
     "uf": "go",
     "senha": "segredo123",
     "confirmar_senha": "segredo123",
+    "aceite_privacidade": True,
 }
 
 
@@ -37,6 +38,27 @@ def test_cadastro_cria_cliente_com_senha_hasheada(client, fake_supabase):
     # A senha nunca é armazenada em texto puro (RNF04).
     assert clientes[0]["senha_hash"].startswith("$2b$")
     assert bcrypt.checkpw("segredo123".encode(), clientes[0]["senha_hash"].encode())
+    # O aceite da política é registrado com data e versão (LGPD).
+    assert clientes[0]["aceite_privacidade"] is True
+    assert clientes[0]["aceite_privacidade_em"]
+    assert clientes[0]["aceite_privacidade_versao"] == "1.0"
+    # As autorizações opcionais nascem desligadas.
+    assert clientes[0]["consentimento_imagem"] is False
+    assert clientes[0]["consentimento_marketing"] is False
+    assert clientes[0]["consentimento_compartilhamento"] is False
+
+
+def test_cadastro_exige_aceite_da_politica(client):
+    dados = dict(DADOS_CADASTRO)
+    dados["aceite_privacidade"] = False
+    resp = client.post("/api/cadastro", json=dados)
+    assert resp.status_code == 422
+    assert "Política de Privacidade" in str(resp.json())
+
+    sem_aceite = dict(DADOS_CADASTRO)
+    sem_aceite.pop("aceite_privacidade")
+    resp = client.post("/api/cadastro", json=sem_aceite)
+    assert resp.status_code == 422
 
 
 def test_cadastro_rejeita_senhas_divergentes(client):

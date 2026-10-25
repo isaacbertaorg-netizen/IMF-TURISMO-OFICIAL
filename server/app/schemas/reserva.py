@@ -41,6 +41,9 @@ class ReservaCreate(BaseModel):
     id_excursao: int
     qtd_vagas: int = Field(gt=0)
     passageiros: list[PassageiroCreate] = Field(min_length=1)
+    # Declaração do responsável legal, obrigatória quando há menor de 18
+    # anos entre os passageiros na data da excursão.
+    declaracao_responsavel_menor: bool = False
 
     @model_validator(mode="after")
     def validar_qtd_passageiros(self):
@@ -58,3 +61,6 @@ class PassageirosUpdate(BaseModel):
     """
 
     passageiros: list[PassageiroCreate] = Field(min_length=1)
+    # A edição pode incluir um menor; nesse caso o responsável precisa
+    # declarar a autorização novamente.
+    declaracao_responsavel_menor: bool = False

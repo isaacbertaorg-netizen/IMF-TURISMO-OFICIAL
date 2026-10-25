@@ -94,6 +94,48 @@ def test_criacao_rejeita_qtd_passageiros_divergente(client, fake_supabase, clien
     assert resp.status_code == 422
 
 
+def test_reserva_com_menor_exige_declaracao_do_responsavel(
+    client, fake_supabase, cliente_token
+):
+    seed_excursao(fake_supabase)
+    headers = {"Authorization": f"Bearer {cliente_token}"}
+    nascimento_menor = (date.today() - timedelta(days=365 * 10)).isoformat()
+    payload = {
+        "id_excursao": 100,
+        "qtd_vagas": 1,
+        "passageiros": [
+            {
+                "nome_passageiro": "Passageiro Menor",
+                "cpf": "12345678909",
+                "data_nascimento": nascimento_menor,
+            }
+        ],
+    }
+
+    resp = client.post("/api/reservas", json=payload, headers=headers)
+    assert resp.status_code == 400
+    assert "responsável legal" in resp.json()["detail"]
+
+    # Nada é gravado e as vagas não são decrementadas quando a declaração falta.
+    assert fake_supabase.table("reserva").select("*").execute().data == []
+    excursao = (
+        fake_supabase.table("excursao")
+        .select("*")
+        .eq("id_excursao", 100)
+        .maybe_single()
+        .execute()
+        .data
+    )
+    assert excursao["vagas_disponiveis"] == 20
+
+    payload["declaracao_responsavel_menor"] = True
+    resp = client.post("/api/reservas", json=payload, headers=headers)
+    assert resp.status_code == 201
+    assert resp.json()["declaracao_responsavel_menor"] is True
+    assert resp.json()["declaracao_responsavel_menor_versao"] == "1.0"
+
+
+
 def test_reserva_rejeita_excursao_que_ja_comecou(client, fake_supabase, cliente_token):
     """Não aceita reserva depois que a data de ida passou."""
     hoje = date.today()

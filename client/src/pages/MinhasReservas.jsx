@@ -9,8 +9,9 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { api, formatarDataHoraLocal, mensagemErro } from '../lib/api.js'
+import { idadeNaData } from '../lib/datas.js'
 import { formatarCPF, cpfValido } from '../lib/mascaras.js'
-import { linkWhatsApp, mensagemPagamento } from '../lib/whatsapp.js'
+import { linkWhatsApp, mensagemCancelamento, mensagemPagamento } from '../lib/whatsapp.js'
 import { colors } from '../theme.js'
 
 const Page = styled.main`
@@ -41,6 +42,7 @@ const TopRow = styled.div`
   display: flex;
   gap: 1rem;
   align-items: center;
+  flex-wrap: wrap;
 `
 
 const Info = styled.div`
@@ -74,6 +76,7 @@ const Actions = styled.div`
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  flex-wrap: wrap;
 `
 
 const CancelButton = styled.button`
@@ -113,6 +116,32 @@ const EditRow = styled.div`
   }
 `
 
+const ConsentBox = styled.label`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  background-color: ${colors.backgroundAlt};
+  border-radius: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  color: ${colors.navy};
+  font-size: 0.82rem;
+  line-height: 1.45;
+
+  input {
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-top: 0.15rem;
+    accent-color: ${colors.primary};
+    flex-shrink: 0;
+  }
+
+  a {
+    color: ${colors.primary};
+    font-weight: 600;
+    text-decoration: underline;
+  }
+`
+
 const PillInput = styled.input`
   flex: 1;
   border: 0;
@@ -143,6 +172,20 @@ const PayLink = styled.a`
   font-size: 0.8rem;
   padding: 0.45rem 1rem;
   text-decoration: none;
+`
+
+// Pedido de cancelamento fora do prazo: abre o WhatsApp em vez de cancelar
+// direto, porque o reembolso/crédito é analisado pela empresa.
+const RequestCancelLink = styled.a`
+  border: 1px solid ${colors.danger};
+  border-radius: 999px;
+  background-color: transparent;
+  color: ${colors.danger};
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 0.45rem 1rem;
+  text-decoration: none;
+  white-space: nowrap;
 `
 
 const Feedback = styled.p`
@@ -181,6 +224,7 @@ function MinhasReservas() {
   const [erro, setErro] = useState('')
   const [editando, setEditando] = useState(null)
   const [passageiros, setPassageiros] = useState([])
+  const [declaracaoResponsavelMenor, setDeclaracaoResponsavelMenor] = useState(false)
   const [erroEdicao, setErroEdicao] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [whatsappNumero, setWhatsappNumero] = useState('')
@@ -222,6 +266,7 @@ function MinhasReservas() {
   function comecarEdicao(reserva) {
     setEditando(reserva.id_reserva)
     setErroEdicao('')
+    setDeclaracaoResponsavelMenor(Boolean(reserva.declaracao_responsavel_menor))
     // Pré-preenche com os passageiros atuais (vêm no /minhas).
     setPassageiros(
       (reserva.passageiros ?? []).map((p) => ({
@@ -245,6 +290,18 @@ function MinhasReservas() {
       setErroEdicao(`CPF inválido no passageiro ${indiceInvalido + 1}. Confira os números.`)
       return
     }
+
+    const temMenor = passageiros.some((p) => {
+      const idade = idadeNaData(p.data_nascimento, reserva.data_ida)
+      return idade !== null && idade >= 0 && idade < 18
+    })
+    if (temMenor && !declaracaoResponsavelMenor) {
+      setErroEdicao(
+        'É necessário que o responsável legal autorize a reserva para passageiro menor de 18 anos.',
+      )
+      return
+    }
+
     setSalvando(true)
     try {
       await api.put(`/api/reservas/${reserva.id_reserva}/passageiros`, {
@@ -253,6 +310,7 @@ function MinhasReservas() {
           cpf: p.cpf.replace(/\D/g, ''),
           data_nascimento: p.data_nascimento,
         })),
+        declaracao_responsavel_menor: temMenor ? declaracaoResponsavelMenor : false,
       })
       setEditando(null)
       await carregar()
@@ -277,6 +335,12 @@ function MinhasReservas() {
         reservas.map((r) => {
           const cancelavel = r.status !== 'cancelada' && dentroDoPrazo(r.data_ida, r.prazo_cancelamento_dias)
           const editavel = r.status !== 'cancelada'
+          const temMenorEdicao =
+            editando === r.id_reserva &&
+            passageiros.some((p) => {
+              const idade = idadeNaData(p.data_nascimento, r.data_ida)
+              return idade !== null && idade >= 0 && idade < 18
+            })
           return (
             <Card key={r.id_reserva}>
               <TopRow>
@@ -286,7 +350,7 @@ function MinhasReservas() {
                     {r.qtd_vagas} vaga{r.qtd_vagas > 1 ? 's' : ''} · reservada em {formatarDataHoraLocal(r.data_reserva)}
                   </Meta>
                   {r.status !== 'cancelada' && !dentroDoPrazo(r.data_ida, r.prazo_cancelamento_dias) && (
-                    <Meta>Fora do prazo de cancelamento.</Meta>
+                    <Meta>Fora do prazo de cancelamento automático.</Meta>
                   )}
                 </Info>
                 <Status $status={r.status}>{ROTULOS_STATUS[r.status] ?? r.status}</Status>
@@ -320,6 +384,25 @@ function MinhasReservas() {
                       Cancelar
                     </CancelButton>
                   )}
+                  {r.status !== 'cancelada' &&
+                    !dentroDoPrazo(r.data_ida, r.prazo_cancelamento_dias) && (
+                      <RequestCancelLink
+                        href={linkWhatsApp(
+                          whatsappNumero,
+                          mensagemCancelamento({
+                            id_reserva: r.id_reserva,
+                            destino: r.excursao_destino ?? r.excursao_nome,
+                            data_ida: r.data_ida,
+                            data_volta: r.data_volta,
+                            qtd_vagas: r.qtd_vagas,
+                          }),
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Solicitar cancelamento
+                      </RequestCancelLink>
+                    )}
                 </Actions>
               </TopRow>
               {editando === r.id_reserva && (
@@ -349,6 +432,23 @@ function MinhasReservas() {
                       />
                     </EditRow>
                   ))}
+                  {temMenorEdicao && (
+                    <ConsentBox>
+                      <input
+                        type="checkbox"
+                        checked={declaracaoResponsavelMenor}
+                        onChange={(e) => setDeclaracaoResponsavelMenor(e.target.checked)}
+                      />
+                      <span>
+                        Declaro ser responsável legal pelo(s) passageiro(s) menor(es) de 18 anos e
+                        autorizo o tratamento dos dados para esta reserva, nos termos da{' '}
+                        <Link to="/politica-de-privacidade" target="_blank" rel="noreferrer">
+                          Política de Privacidade
+                        </Link>
+                        .
+                      </span>
+                    </ConsentBox>
+                  )}
                   {erroEdicao && <ErrorText>{erroEdicao}</ErrorText>}
                   <SaveButton type="submit" disabled={salvando}>
                     {salvando ? 'Salvando…' : 'Salvar alterações'}

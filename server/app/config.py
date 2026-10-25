@@ -91,6 +91,12 @@ class Settings:
         # Bucket público onde o admin envia as fotos pelo formulário. O
         # back-end cria o bucket na primeira utilização, se ainda não existir.
         self.storage_bucket = os.getenv("SUPABASE_STORAGE_BUCKET", "excursao-imagens")
+        # Bucket separado para os avatares dos clientes. Também é público
+        # porque o <img> do avatar precisa carregar direto do Storage; o
+        # nome do arquivo é aleatório e a foto pode ser removida pelo dono.
+        self.storage_bucket_perfil = os.getenv(
+            "SUPABASE_STORAGE_BUCKET_PERFIL", "perfil-imagens"
+        )
         # Limite por arquivo. O Vercel aceita ~4,5 MB por requisição, então
         # 4 MB deixa margem para o envelope multipart.
         self.max_imagem_mb = int(os.getenv("MAX_IMAGEM_MB", "4"))

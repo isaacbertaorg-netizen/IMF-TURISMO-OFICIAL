@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { api, formatarDataBR, formatarMoeda, mensagemErro } from '../lib/api.js'
+import { idadeNaData } from '../lib/datas.js'
 import { formatarCPF, cpfValido } from '../lib/mascaras.js'
 import { linkWhatsApp, mensagemPagamento } from '../lib/whatsapp.js'
 import { colors } from '../theme.js'
@@ -216,6 +217,32 @@ const StepLabel = styled.h3`
   font-weight: 700;
 `
 
+const ConsentBox = styled.label`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background-color: ${colors.backgroundAlt};
+  border-radius: 0.75rem;
+  padding: 0.8rem 1rem;
+  color: ${colors.navy};
+  font-size: 0.85rem;
+  line-height: 1.45;
+
+  input {
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-top: 0.15rem;
+    accent-color: ${colors.primary};
+    flex-shrink: 0;
+  }
+
+  a {
+    color: ${colors.primary};
+    font-weight: 600;
+    text-decoration: underline;
+  }
+`
+
 function escolherFoto(excursao) {
   if (excursao?.imagem_url) return excursao.imagem_url
   return fotoLocal(excursao?.destino)
@@ -240,6 +267,7 @@ function Reserva() {
   const [passageiros, setPassageiros] = useState([passageiroVazio(), passageiroVazio()])
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const [declaracaoResponsavelMenor, setDeclaracaoResponsavelMenor] = useState(false)
   // Reserva recém-criada: quando existe, a tela vira a etapa de pagamento.
   const [reservaCriada, setReservaCriada] = useState(null)
   const [whatsappNumero, setWhatsappNumero] = useState('')
@@ -279,6 +307,15 @@ function Reserva() {
     setPassageiros((atual) => atual.map((p, i) => (i === indice ? { ...p, [campo]: valor } : p)))
   }
 
+  // A idade é calculada na data de ida da excursão (não na data da reserva),
+  // que é a data em que o passageiro efetivamente viaja.
+  function temPassageiroMenor() {
+    return passageiros.some((p) => {
+      const idade = idadeNaData(p.data_nascimento, excursao?.data_ida)
+      return idade !== null && idade >= 0 && idade < 18
+    })
+  }
+
   async function confirmar() {
     setErro('')
     // Barra o CPF inválido antes de chamar a API, indicando qual passageiro.
@@ -287,6 +324,15 @@ function Reserva() {
       setErro(`CPF inválido no passageiro ${indiceInvalido + 1}. Confira os números.`)
       return
     }
+
+    const temMenor = temPassageiroMenor()
+    if (temMenor && !declaracaoResponsavelMenor) {
+      setErro(
+        'É necessário que o responsável legal autorize a reserva para passageiro menor de 18 anos.',
+      )
+      return
+    }
+
     setEnviando(true)
     try {
       const resp = await api.post('/api/reservas', {
@@ -297,6 +343,7 @@ function Reserva() {
           cpf: p.cpf.replace(/\D/g, ''),
           data_nascimento: p.data_nascimento,
         })),
+        declaracao_responsavel_menor: temMenor ? declaracaoResponsavelMenor : false,
       })
       // Não navega: mostra a etapa de pagamento com o link do WhatsApp.
       setReservaCriada(resp.data)
@@ -318,6 +365,7 @@ function Reserva() {
   }
 
   const periodo = `${formatarDataBR(excursao.data_ida)} a ${formatarDataBR(excursao.data_volta)}`
+  const temMenor = temPassageiroMenor()
 
   // Etapa 3 — pagamento. A reserva já foi gravada como 'pendente'; o link
   // abre o WhatsApp da empresa com os dados prontos para combinar o valor.
@@ -431,6 +479,24 @@ function Reserva() {
             </Row>
           </PassageiroBloco>
         ))}
+
+        {temMenor && (
+          <ConsentBox>
+            <input
+              type="checkbox"
+              checked={declaracaoResponsavelMenor}
+              onChange={(e) => setDeclaracaoResponsavelMenor(e.target.checked)}
+            />
+            <span>
+              Declaro ser responsável legal pelo(s) passageiro(s) menor(es) de 18 anos e autorizo
+              o tratamento dos dados para esta reserva, nos termos da{' '}
+              <Link to="/politica-de-privacidade" target="_blank" rel="noreferrer">
+                Política de Privacidade
+              </Link>
+              .
+            </span>
+          </ConsentBox>
+        )}
 
         {erro && <ErrorText>{erro}</ErrorText>}
 

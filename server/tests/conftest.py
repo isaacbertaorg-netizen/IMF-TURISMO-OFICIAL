@@ -315,6 +315,20 @@ def cliente_token(fake_supabase):
                 "cidade": "Brasilia",
                 "uf": "DF",
                 "senha_hash": "fake-hash",
+                # Colunas de foto/consentimentos existentes no schema real
+                # após a migração; o fake não aplica DEFAULT do banco.
+                "foto_perfil_url": None,
+                "aceite_privacidade": False,
+                "aceite_privacidade_em": None,
+                "aceite_privacidade_versao": None,
+                "consentimento_imagem": False,
+                "consentimento_imagem_em": None,
+                "consentimento_marketing": False,
+                "consentimento_marketing_em": None,
+                "consentimento_compartilhamento": False,
+                "consentimento_compartilhamento_em": None,
+                "consentimentos_versao": None,
+                "consentimentos_atualizado_em": None,
             }
         ],
     )

@@ -23,6 +23,7 @@ import Home from './pages/Home.jsx'
 import Login from './pages/Login.jsx'
 import MinhasReservas from './pages/MinhasReservas.jsx'
 import Perfil from './pages/Perfil.jsx'
+import PoliticaPrivacidade from './pages/PoliticaPrivacidade.jsx'
 import RedefinirSenha from './pages/RedefinirSenha.jsx'
 import Reserva from './pages/Reserva.jsx'
 import { colors } from './theme.js'
@@ -56,6 +57,7 @@ function App() {
           <Route path="/cadastro" element={<Cadastro />} />
           <Route path="/esqueci-senha" element={<EsqueciSenha />} />
           <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+          <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
           <Route
             path="/excursoes/:id/reservar"
             element={

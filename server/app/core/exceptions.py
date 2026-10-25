@@ -77,6 +77,20 @@ class ArquivoInvalidoError(DomainError):
     message = "Arquivo inválido"
 
 
+class ConsentimentoObrigatorioError(DomainError):
+    # 400: o aceite da política é condição para manter o cadastro em uso.
+    status_code = 400
+    message = "É necessário aceitar a Política de Privacidade e os Termos de Uso"
+
+
+class ConsentimentoMenorError(DomainError):
+    # 400: reserva com passageiro menor exige a declaração do responsável.
+    status_code = 400
+    message = (
+        "É necessário que o responsável legal autorize a reserva para passageiro menor de 18 anos"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Handler único que converte DomainError em JSON com código HTTP adequado.
 # ---------------------------------------------------------------------------

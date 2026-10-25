@@ -10,12 +10,13 @@
 # do banco atualizar o estoque (evita dupla contagem).
 # ===========================================================================
 
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Any
 
 from app.core import supabase
-from app.core.datas import hoje_brasilia
+from app.core.datas import hoje_brasilia, idade_na_data
 from app.core.exceptions import (
+    ConsentimentoMenorError,
     ExcursaoIndisponivelError,
     PassageirosDivergentesError,
     PrazoCancelamentoExpiradoError,
@@ -23,7 +24,28 @@ from app.core.exceptions import (
     ReservaJaCanceladaError,
     VagasInsuficientesError,
 )
+from app.core.lgpd import VERSAO_CONSENTIMENTOS
 from app.services.excursao_service import obter_excursao
+
+
+def _validar_responsavel_menor(
+    passageiros: list[dict[str, Any]],
+    data_ida: date,
+    declaracao: bool,
+) -> bool:
+    """Retorna se há menor e exige a declaração do responsável quando houver.
+
+    A idade é calculada na data de ida da excursão (e não na data da reserva),
+    porque é nessa data que a pessoa viaja. A checagem fica no serviço para
+    valer tanto na criação quanto na edição dos passageiros.
+    """
+    tem_menor = any(
+        idade_na_data(date.fromisoformat(str(p["data_nascimento"])[:10]), data_ida) < 18
+        for p in passageiros
+    )
+    if tem_menor and not declaracao:
+        raise ConsentimentoMenorError()
+    return tem_menor
 
 
 def criar_reserva(
@@ -32,6 +54,7 @@ def criar_reserva(
     qtd_vagas: int,
     passageiros: list[dict[str, Any]],
     hoje: date | None = None,
+    declaracao_responsavel_menor: bool = False,
 ) -> dict[str, Any]:
     """Cria uma reserva com status 'pendente'.
 
@@ -48,6 +71,14 @@ def criar_reserva(
     if date.fromisoformat(excursao["data_ida"]) < hoje:
         raise ExcursaoIndisponivelError()
 
+    # Passageiro menor exige a declaração do responsável legal. A idade é
+    # calculada na data da excursão, não na data da reserva.
+    tem_menor = _validar_responsavel_menor(
+        passageiros,
+        date.fromisoformat(excursao["data_ida"]),
+        declaracao_responsavel_menor,
+    )
+
     # Validação de overbooking na camada de aplicação (seção 6.6): mesmo com o
     # trigger no banco, validamos aqui para retornar erro amigável ao usuário.
     if excursao["vagas_disponiveis"] < qtd_vagas:
@@ -57,6 +88,7 @@ def criar_reserva(
 
     # Reserva nasce 'pendente' até a confirmação de pagamento (seção 3.4).
     # data_reserva tem DEFAULT NOW() no banco; o trigger decrementa as vagas.
+    agora = datetime.now(timezone.utc).isoformat()
     reserva = (
         supabase.get_supabase()
         .table("reserva")
@@ -66,6 +98,12 @@ def criar_reserva(
                 "id_excursao": id_excursao,
                 "qtd_vagas": qtd_vagas,
                 "status": "pendente",
+                # Registro da declaração para fins de LGPD (art. 14).
+                "declaracao_responsavel_menor": tem_menor,
+                "declaracao_responsavel_menor_em": agora if tem_menor else None,
+                "declaracao_responsavel_menor_versao": (
+                    VERSAO_CONSENTIMENTOS if tem_menor else None
+                ),
             }
         )
         .execute()
@@ -172,7 +210,10 @@ def cancelar_reserva(id_cliente: int, id_reserva: int, hoje: date | None = None)
 
 
 def atualizar_passageiros(
-    id_cliente: int, id_reserva: int, passageiros: list[dict[str, Any]]
+    id_cliente: int,
+    id_reserva: int,
+    passageiros: list[dict[str, Any]],
+    declaracao_responsavel_menor: bool = False,
 ) -> dict[str, Any]:
     """Substitui os passageiros de uma reserva (botão "continuar editando").
 
@@ -198,9 +239,30 @@ def atualizar_passageiros(
     if len(passageiros) != reserva["qtd_vagas"]:
         raise PassageirosDivergentesError()
 
+    # A edição pode adicionar ou trocar um passageiro por um menor de 18
+    # anos. A declaração é exigida de novo e o registro é atualizado junto
+    # com a lista, para que o banco reflita a composição atual da reserva.
+    excursao = obter_excursao(reserva["id_excursao"])
+    tem_menor = _validar_responsavel_menor(
+        passageiros,
+        date.fromisoformat(excursao["data_ida"]),
+        declaracao_responsavel_menor,
+    )
+
     supabase.get_supabase().table("passageiro").delete().eq("id_reserva", id_reserva).execute()
     supabase.get_supabase().table("passageiro").insert(
         [{"id_reserva": id_reserva, **passageiro} for passageiro in passageiros]
     ).execute()
+
+    agora = datetime.now(timezone.utc).isoformat()
+    supabase.get_supabase().table("reserva").update(
+        {
+            "declaracao_responsavel_menor": tem_menor,
+            "declaracao_responsavel_menor_em": agora if tem_menor else None,
+            "declaracao_responsavel_menor_versao": (
+                VERSAO_CONSENTIMENTOS if tem_menor else None
+            ),
+        }
+    ).eq("id_reserva", id_reserva).execute()
 
     return reserva
