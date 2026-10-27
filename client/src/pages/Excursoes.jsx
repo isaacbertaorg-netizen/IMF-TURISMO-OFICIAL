@@ -8,7 +8,9 @@ import { useCallback, useEffect, useState } from 'react'
 import styled from 'styled-components'
 import { colors } from '../theme.js'
 import { api } from '../lib/api.js'
+import { normalizarDataISO } from '../lib/datas.js'
 import ExcursionCard from '../components/ExcursionCard.jsx'
+import DateInput from '../components/DateInput.jsx'
 
 const Page = styled.main`
   max-width: 1100px;
@@ -114,7 +116,15 @@ function Excursoes() {
 
   function aplicarFiltros(event) {
     event.preventDefault()
-    buscar(filtros)
+    // As datas na tela estão em DD/MM/AAAA; converte para ISO antes de montar
+    // a query string da API.
+    const dataInicio = filtros.data_inicio ? normalizarDataISO(filtros.data_inicio) : ''
+    const dataFim = filtros.data_fim ? normalizarDataISO(filtros.data_fim) : ''
+    if ((filtros.data_inicio && !dataInicio) || (filtros.data_fim && !dataFim)) {
+      setErro('Informe as datas no formato DD/MM/AAAA.')
+      return
+    }
+    buscar({ ...filtros, data_inicio: dataInicio, data_fim: dataFim })
   }
 
   function limparFiltros() {
@@ -132,17 +142,19 @@ function Excursoes() {
           value={filtros.destino}
           onChange={(e) => atualizar('destino', e.target.value)}
         />
-        <PillInput
-          type="date"
+        <DateInput
           aria-label="Data de ida"
+          placeholder="Ida (DD/MM/AAAA)"
           value={filtros.data_inicio}
-          onChange={(e) => atualizar('data_inicio', e.target.value)}
+          onChange={(valor) => atualizar('data_inicio', valor)}
+          style={{ flex: '1 1 140px', minWidth: 120, width: 'auto' }}
         />
-        <PillInput
-          type="date"
+        <DateInput
           aria-label="Data de volta"
+          placeholder="Volta (DD/MM/AAAA)"
           value={filtros.data_fim}
-          onChange={(e) => atualizar('data_fim', e.target.value)}
+          onChange={(valor) => atualizar('data_fim', valor)}
+          style={{ flex: '1 1 140px', minWidth: 120, width: 'auto' }}
         />
         <PillInput
           type="number"

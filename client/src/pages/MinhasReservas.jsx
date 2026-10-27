@@ -9,10 +9,11 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { api, formatarDataHoraLocal, mensagemErro } from '../lib/api.js'
-import { idadeNaData } from '../lib/datas.js'
+import { dataISOparaBR, dataNascimentoValida, idadeNaData, normalizarDataISO } from '../lib/datas.js'
 import { formatarCPF, cpfValido } from '../lib/mascaras.js'
 import { linkWhatsApp, mensagemCancelamento, mensagemPagamento } from '../lib/whatsapp.js'
 import { colors } from '../theme.js'
+import DateInput from '../components/DateInput.jsx'
 
 const Page = styled.main`
   max-width: 900px;
@@ -272,7 +273,7 @@ function MinhasReservas() {
       (reserva.passageiros ?? []).map((p) => ({
         nome_passageiro: p.nome_passageiro ?? '',
         cpf: formatarCPF(p.cpf ?? ''),
-        data_nascimento: String(p.data_nascimento ?? '').slice(0, 10),
+        data_nascimento: dataISOparaBR(p.data_nascimento),
       })),
     )
   }
@@ -284,6 +285,18 @@ function MinhasReservas() {
   async function salvarEdicao(event, reserva) {
     event.preventDefault()
     setErroEdicao('')
+    // A API espera a data em ISO; a edição também precisa recusar uma data
+    // incompleta antes de enviar, para não exibir o erro técnico do back-end.
+    const indiceDataInvalida = passageiros.findIndex(
+      (p) => !dataNascimentoValida(p.data_nascimento),
+    )
+    if (indiceDataInvalida >= 0) {
+      setErroEdicao(
+        `Informe uma data de nascimento válida para o passageiro ${indiceDataInvalida + 1}.`,
+      )
+      return
+    }
+
     // Mesma checagem do back-end, mas apontando o passageiro com problema.
     const indiceInvalido = passageiros.findIndex((p) => !cpfValido(p.cpf))
     if (indiceInvalido >= 0) {
@@ -308,7 +321,7 @@ function MinhasReservas() {
         passageiros: passageiros.map((p) => ({
           nome_passageiro: p.nome_passageiro.trim(),
           cpf: p.cpf.replace(/\D/g, ''),
-          data_nascimento: p.data_nascimento,
+          data_nascimento: normalizarDataISO(p.data_nascimento),
         })),
         declaracao_responsavel_menor: temMenor ? declaracaoResponsavelMenor : false,
       })
@@ -423,12 +436,11 @@ function MinhasReservas() {
                         value={p.cpf}
                         onChange={(e) => atualizarPassageiro(i, 'cpf', formatarCPF(e.target.value))}
                       />
-                      <PillInput
-                        type="date"
+                      <DateInput
                         required
                         aria-label={`Nascimento passageiro ${i + 1}`}
                         value={p.data_nascimento}
-                        onChange={(e) => atualizarPassageiro(i, 'data_nascimento', e.target.value)}
+                        onChange={(valor) => atualizarPassageiro(i, 'data_nascimento', valor)}
                       />
                     </EditRow>
                   ))}

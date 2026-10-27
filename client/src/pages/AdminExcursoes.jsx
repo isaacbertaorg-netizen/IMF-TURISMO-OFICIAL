@@ -9,7 +9,9 @@
 import { useEffect, useRef, useState } from 'react'
 import styled from 'styled-components'
 import { api, mensagemErro } from '../lib/api.js'
+import { dataISOparaBR, normalizarDataISO } from '../lib/datas.js'
 import { colors } from '../theme.js'
+import DateInput from '../components/DateInput.jsx'
 
 const Title = styled.h1`
   color: ${colors.navy};
@@ -280,11 +282,23 @@ function AdminExcursoes() {
       setErro('Informe o destino da excursão.')
       return
     }
+    // Os campos de data usam DD/MM/AAAA; converte para o ISO esperado pela API
+    // e valida antes de enviar, mantendo o formato brasileiro na tela.
+    const dataIda = normalizarDataISO(form.data_ida)
+    const dataVolta = normalizarDataISO(form.data_volta)
+    if (!dataIda || !dataVolta) {
+      setErro('Informe as datas de ida e volta no formato DD/MM/AAAA.')
+      return
+    }
+    if (dataVolta < dataIda) {
+      setErro('A data de volta não pode ser anterior à data de ida.')
+      return
+    }
     const payload = {
       nome_excursao: form.nome_excursao.trim(),
       destino: destinoFinal,
-      data_ida: form.data_ida,
-      data_volta: form.data_volta,
+      data_ida: dataIda,
+      data_volta: dataVolta,
       valor_pessoa: Number(form.valor_pessoa),
       vagas_totais: Number(form.vagas_totais),
       descricao_roteiro: form.descricao_roteiro.trim(),
@@ -312,8 +326,8 @@ function AdminExcursoes() {
       nome_excursao: excursao.nome_excursao ?? '',
       destino: DESTINOS_SUGERIDOS.includes(excursao.destino) ? excursao.destino : 'Outro',
       destino_novo: DESTINOS_SUGERIDOS.includes(excursao.destino) ? '' : (excursao.destino ?? ''),
-      data_ida: String(excursao.data_ida ?? '').slice(0, 10),
-      data_volta: String(excursao.data_volta ?? '').slice(0, 10),
+      data_ida: dataISOparaBR(excursao.data_ida),
+      data_volta: dataISOparaBR(excursao.data_volta),
       valor_pessoa: excursao.valor_pessoa ?? '',
       vagas_totais: excursao.vagas_totais ?? '',
       descricao_roteiro: excursao.descricao_roteiro ?? '',
@@ -360,11 +374,11 @@ function AdminExcursoes() {
             </div>
             <div style={{ flex: 1 }}>
               <Label>Data de ida:</Label>
-              <PillInput type="date" required value={form.data_ida} onChange={(e) => atualizar('data_ida', e.target.value)} />
+              <DateInput required value={form.data_ida} onChange={(valor) => atualizar('data_ida', valor)} />
             </div>
             <div style={{ flex: 1 }}>
               <Label>Data de volta:</Label>
-              <PillInput type="date" required value={form.data_volta} onChange={(e) => atualizar('data_volta', e.target.value)} />
+              <DateInput required value={form.data_volta} onChange={(valor) => atualizar('data_volta', valor)} />
             </div>
             <div style={{ flex: 1 }}>
               <Label>Número de Vagas:</Label>

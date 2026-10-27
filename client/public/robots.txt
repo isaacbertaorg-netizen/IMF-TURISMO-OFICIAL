@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://imf-turismo.vercel.app/sitemap.xml

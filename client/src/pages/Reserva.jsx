@@ -11,10 +11,11 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { api, formatarDataBR, formatarMoeda, mensagemErro } from '../lib/api.js'
-import { idadeNaData } from '../lib/datas.js'
+import { dataNascimentoValida, idadeNaData, normalizarDataISO } from '../lib/datas.js'
 import { formatarCPF, cpfValido } from '../lib/mascaras.js'
 import { linkWhatsApp, mensagemPagamento } from '../lib/whatsapp.js'
 import { colors } from '../theme.js'
+import DateInput from '../components/DateInput.jsx'
 import cardCaldas from '../assets/card-caldas-novas.jpg'
 import cardMaceio from '../assets/card-maceio.webp'
 
@@ -318,6 +319,18 @@ function Reserva() {
 
   async function confirmar() {
     setErro('')
+    // A API espera uma data ISO. Validar aqui evita enviar uma data incompleta
+    // (por exemplo, 11/11/111111) e receber um erro técnico do back-end.
+    const indiceDataInvalida = passageiros.findIndex(
+      (p) => !dataNascimentoValida(p.data_nascimento),
+    )
+    if (indiceDataInvalida >= 0) {
+      setErro(
+        `Informe uma data de nascimento válida para o passageiro ${indiceDataInvalida + 1}.`,
+      )
+      return
+    }
+
     // Barra o CPF inválido antes de chamar a API, indicando qual passageiro.
     const indiceInvalido = passageiros.findIndex((p) => !cpfValido(p.cpf))
     if (indiceInvalido >= 0) {
@@ -341,7 +354,7 @@ function Reserva() {
         passageiros: passageiros.map((p) => ({
           nome_passageiro: p.nome_passageiro.trim(),
           cpf: p.cpf.replace(/\D/g, ''),
-          data_nascimento: p.data_nascimento,
+          data_nascimento: normalizarDataISO(p.data_nascimento),
         })),
         declaracao_responsavel_menor: temMenor ? declaracaoResponsavelMenor : false,
       })
@@ -474,7 +487,13 @@ function Reserva() {
               </Campo>
               <Campo>
                 <Rotulo>Data de nascimento</Rotulo>
-                <PillInput type="date" required aria-label={`Nascimento passageiro ${i + 1}`} value={p.data_nascimento} onChange={(e) => atualizarPassageiro(i, 'data_nascimento', e.target.value)} />
+                <DateInput
+                  required
+                  autoComplete="bday"
+                  aria-label={`Nascimento passageiro ${i + 1}`}
+                  value={p.data_nascimento}
+                  onChange={(valor) => atualizarPassageiro(i, 'data_nascimento', valor)}
+                />
               </Campo>
             </Row>
           </PassageiroBloco>

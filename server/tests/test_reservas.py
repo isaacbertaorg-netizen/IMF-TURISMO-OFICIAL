@@ -78,6 +78,34 @@ def test_criacao_de_reserva_com_passageiros(client, fake_supabase, cliente_token
     assert passageiros[0]["nome_passageiro"].startswith("Passageiro")
 
 
+def test_criacao_aceita_data_de_nascimento_no_formato_brasileiro(
+    client, fake_supabase, cliente_token
+):
+    """O schema converte DD/MM/AAAA para date, evitando erro de separador."""
+    seed_excursao(fake_supabase)
+    payload = {
+        "id_excursao": 100,
+        "qtd_vagas": 1,
+        "passageiros": [
+            {
+                "nome_passageiro": "Passageiro Data BR",
+                "cpf": "12345678909",
+                "data_nascimento": "10/05/1990",
+            }
+        ],
+    }
+
+    resp = client.post(
+        "/api/reservas",
+        json=payload,
+        headers={"Authorization": f"Bearer {cliente_token}"},
+    )
+
+    assert resp.status_code == 201
+    passageiro = fake_supabase.table("passageiro").select("*").execute().data[0]
+    assert str(passageiro["data_nascimento"])[:10] == "1990-05-10"
+
+
 def test_criacao_rejeita_qtd_passageiros_divergente(client, fake_supabase, cliente_token):
     seed_excursao(fake_supabase)
     payload = {

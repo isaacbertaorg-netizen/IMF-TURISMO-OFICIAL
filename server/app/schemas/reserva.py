@@ -8,6 +8,7 @@ from datetime import date
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.core.datas import hoje_brasilia
 from app.core.validacao import cpf_valido, normalizar_cpf
 
 
@@ -17,6 +18,48 @@ class PassageiroCreate(BaseModel):
     nome_passageiro: str = Field(min_length=3, max_length=150)
     cpf: str
     data_nascimento: date
+
+    @field_validator("data_nascimento", mode="before")
+    @classmethod
+    def normalizar_data_nascimento(cls, valor):
+        """Aceita a data no formato brasileiro, além do ISO enviado pelo site.
+
+        O campo nativo do navegador normalmente entrega AAAA-MM-DD, mas alguns
+        navegadores/campos degradados podem devolver DD/MM/AAAA. Normalizar
+        aqui evita um erro de validação confuso para o cliente.
+        """
+        if isinstance(valor, str):
+            texto = valor.strip()
+            try:
+                return date.fromisoformat(texto)
+            except ValueError:
+                pass
+
+            # Formato brasileiro: DD/MM/AAAA ou DD-MM-AAAA.
+            partes = texto.replace("-", "/").split("/")
+            if (
+                len(partes) == 3
+                and len(partes[0]) == 2
+                and len(partes[1]) == 2
+                and len(partes[2]) == 4
+                and all(parte.isdigit() for parte in partes)
+            ):
+                dia, mes, ano = (int(parte) for parte in partes)
+                try:
+                    return date(ano, mes, dia)
+                except ValueError:
+                    pass
+        return valor
+
+    @field_validator("data_nascimento")
+    @classmethod
+    def validar_data_nascimento(cls, valor: date) -> date:
+        """Recusa datas de nascimento inválidas ou no futuro."""
+        if valor.year < 1900:
+            raise ValueError("Data de nascimento inválida")
+        if valor > hoje_brasilia():
+            raise ValueError("Data de nascimento não pode estar no futuro")
+        return valor
 
     @field_validator("cpf")
     @classmethod
