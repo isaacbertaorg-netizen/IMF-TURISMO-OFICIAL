@@ -12,6 +12,7 @@ import Footer from './components/Footer.jsx'
 import Navbar from './components/Navbar.jsx'
 import { AdminRoute, ClienteRoute, ProtectedRoute } from './components/ProtectedRoute.jsx'
 import { AuthProvider } from './lib/auth.jsx'
+import { FavoritosProvider } from './lib/favoritos.jsx'
 import AdminClientes from './pages/AdminClientes.jsx'
 import AdminDashboard from './pages/AdminDashboard.jsx'
 import AdminExcursoes from './pages/AdminExcursoes.jsx'
@@ -21,6 +22,7 @@ import Cadastro from './pages/Cadastro.jsx'
 import EsqueciSenha from './pages/EsqueciSenha.jsx'
 import Excursoes from './pages/Excursoes.jsx'
 import ExcursionDetails from './pages/ExcursionDetails.jsx'
+import Favoritos from './pages/Favoritos.jsx'
 import Home from './pages/Home.jsx'
 import Login from './pages/Login.jsx'
 import MinhasReservas from './pages/MinhasReservas.jsx'
@@ -61,7 +63,8 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Shell>
+        <FavoritosProvider>
+          <Shell>
           <Navbar />
           <Routes>
             <Route path="/" element={<Home />} />
@@ -91,6 +94,14 @@ function App() {
               }
             />
             <Route
+              path="/favoritos"
+              element={
+                <ClienteRoute>
+                  <Favoritos />
+                </ClienteRoute>
+              }
+            />
+            <Route
               path="/perfil"
               element={
                 <ClienteRoute>
@@ -116,7 +127,8 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Footer />
-        </Shell>
+          </Shell>
+        </FavoritosProvider>
       </AuthProvider>
     </BrowserRouter>
   )

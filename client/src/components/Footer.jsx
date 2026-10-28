@@ -294,6 +294,7 @@ function Footer() {
           <ColumnTitle>Navegue</ColumnTitle>
           <FooterLink to="/">Início</FooterLink>
           <FooterLink to="/excursoes">Excursões</FooterLink>
+          <FooterLink to="/favoritos">Meus favoritos</FooterLink>
           <FooterLink to="/sobre">Sobre nós</FooterLink>
           <FooterLink to="/minhas-reservas">Minhas Reservas</FooterLink>
           <FooterLink to="/perfil">Meu Perfil</FooterLink>

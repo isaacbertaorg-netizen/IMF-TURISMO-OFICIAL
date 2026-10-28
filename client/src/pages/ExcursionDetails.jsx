@@ -12,6 +12,7 @@ import { colors } from '../theme.js'
 import { api, formatarDataBR, formatarMoeda } from '../lib/api.js'
 import { fundoDaExcursao } from '../lib/fundos.js'
 import PageBackground from '../components/PageBackground.jsx'
+import FavoriteButton from '../components/FavoriteButton.jsx'
 import cardCaldas from '../assets/card-caldas-novas.jpg'
 import cardMaceio from '../assets/card-maceio.webp'
 
@@ -85,7 +86,9 @@ const Text = styled.p`
 
 const Actions = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
+  align-items: center;
   margin-top: 0.5rem;
 `
 
@@ -226,6 +229,7 @@ function ExcursionDetails() {
             ) : (
               <ReserveButton to={`/excursoes/${excursao.id_excursao}/reservar`}>Reservar</ReserveButton>
             )}
+            <FavoriteButton idExcursao={excursao.id_excursao} destaque />
           </Actions>
         </Body>
         </Card>

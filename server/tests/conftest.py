@@ -24,6 +24,7 @@ PRIMARY_KEYS = {
     "excursao": "id_excursao",
     "reserva": "id_reserva",
     "passageiro": "id_passageiro",
+    "favorito": "id_favorito",
     "pagamento": "id_pagamento",
     "comprovante": "id_comprovante",
 }

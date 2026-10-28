@@ -14,7 +14,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.config import settings
 from app.core.exceptions import DomainError, domain_error_handler
 from app.core.rate_limit import limiter
-from app.routes import admin, auth, excursoes, health, perfil, publico, reservas
+from app.routes import admin, auth, excursoes, favoritos, health, perfil, publico, reservas
 
 app = FastAPI(
     title="IMF Turismo API",
@@ -73,5 +73,6 @@ app.include_router(publico.router)
 app.include_router(auth.router)
 app.include_router(excursoes.router)
 app.include_router(reservas.router)
+app.include_router(favoritos.router)
 app.include_router(perfil.router)
 app.include_router(admin.router)

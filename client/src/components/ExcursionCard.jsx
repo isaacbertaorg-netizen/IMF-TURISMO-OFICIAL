@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { colors } from '../theme.js'
 import { formatarDataBR, formatarMoeda } from '../lib/api.js'
+import FavoriteButton from './FavoriteButton.jsx'
 import cardCaldas from '../assets/card-caldas-novas.jpg'
 import cardMaceio from '../assets/card-maceio.webp'
 
@@ -97,14 +98,6 @@ const Footer = styled.div`
   padding-top: 0.5rem;
 `
 
-const FavTag = styled.span`
-  font-size: 0.7rem;
-  color: ${colors.textMuted};
-  background-color: #e5e7eb;
-  border-radius: 0.25rem;
-  padding: 0.1rem 0.4rem;
-`
-
 const DetailsButton = styled(Link)`
   background-color: ${colors.primary};
   color: #fff;
@@ -167,7 +160,7 @@ function ExcursionCard({ excursao }) {
           </Meta>
         </MetaRow>
         <Footer>
-          <FavTag>Adicionar aos favoritos</FavTag>
+          <FavoriteButton idExcursao={excursao.id_excursao} />
           <DetailsButton to={`/excursoes/${excursao.id_excursao}`}>Ver detalhes</DetailsButton>
         </Footer>
       </Body>

@@ -192,6 +192,11 @@ function Navbar() {
             Perguntas frequentes
           </NavItem>
           {!ehAdmin && (
+            <NavItem to="/favoritos" onClick={fecharMenu}>
+              Favoritos
+            </NavItem>
+          )}
+          {!ehAdmin && (
             <NavItem to="/minhas-reservas" onClick={fecharMenu}>
               Minhas Reservas
             </NavItem>
