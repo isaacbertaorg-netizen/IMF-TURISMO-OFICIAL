@@ -704,6 +704,7 @@ function Home() {
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
   const mensagem = 'Olá! Vim pelo site da IMF Turismo e gostaria de saber mais sobre as excursões.'
+  const mensagemIara = 'Olá, Iara! Vim pelo site da IMF Turismo e gostaria de falar com você.'
 
   useEffect(() => {
     let ativo = true
@@ -922,11 +923,11 @@ function Home() {
             </Credentials>
             <OwnerActions>
               <WhatsAppAction
-                href={linkWhatsApp(numero, mensagem)}
+                href={linkWhatsApp(numero, mensagemIara)}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Falar no WhatsApp
+                Falar com Iara
               </WhatsAppAction>
               <SecondaryAction to="/sobre">Conheça a IMF</SecondaryAction>
             </OwnerActions>

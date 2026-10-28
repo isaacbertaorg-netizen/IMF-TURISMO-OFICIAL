@@ -4,10 +4,13 @@
 # camada de rotas. Colunas conforme o schema real.
 # ===========================================================================
 
+import logging
 from typing import Any
 
 from app.core import supabase
 from app.core.exceptions import RecursoNaoEncontradoError, ReservaJaCanceladaError
+
+logger = logging.getLogger(__name__)
 
 
 def dashboard() -> dict[str, int]:
@@ -122,7 +125,7 @@ def confirmar_reserva(id_reserva: int) -> dict[str, Any]:
     if reserva["status"] == "confirmada":
         return reserva
 
-    return (
+    atualizada = (
         supabase.get_supabase()
         .table("reserva")
         .update({"status": "confirmada"})
@@ -130,6 +133,21 @@ def confirmar_reserva(id_reserva: int) -> dict[str, Any]:
         .execute()
         .data[0]
     )
+
+    # Confirmação de pagamento: envia o pacote confirmado para o e-mail do
+    # cliente. Import local evita ciclo entre os serviços de reserva e admin.
+    from app.services.excursao_service import obter_excursao
+    from app.services.reserva_service import notificar_cliente_reserva
+
+    try:
+        notificar_cliente_reserva(
+            atualizada, obter_excursao(atualizada["id_excursao"]), confirmada=True
+        )
+    except Exception:  # noqa: BLE001 - e-mail/dados auxiliares não impedem a confirmação
+        logger.exception(
+            "Falha ao notificar confirmacao da reserva %s", atualizada.get("id_reserva")
+        )
+    return atualizada
 
 
 def listar_clientes() -> list[dict[str, Any]]:

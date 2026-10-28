@@ -16,6 +16,7 @@ import { formatarCPF, cpfValido } from '../lib/mascaras.js'
 import { linkWhatsApp, mensagemPagamento } from '../lib/whatsapp.js'
 import { colors } from '../theme.js'
 import DateInput from '../components/DateInput.jsx'
+import PolicyModalLink from '../components/PolicyModal.jsx'
 import cardCaldas from '../assets/card-caldas-novas.jpg'
 import cardMaceio from '../assets/card-maceio.webp'
 
@@ -415,6 +416,10 @@ function Reserva() {
             </li>
           </Resumo>
 
+          <Note>
+            Também enviamos os detalhes deste pacote para o e-mail cadastrado na sua conta.
+          </Note>
+
           <p>
             O pagamento é combinado diretamente com a IMF Turismo pelo WhatsApp. Clique no
             botão abaixo: a mensagem já vai preenchida com os dados da sua reserva.
@@ -509,10 +514,7 @@ function Reserva() {
             <span>
               Declaro ser responsável legal pelo(s) passageiro(s) menor(es) de 18 anos e autorizo
               o tratamento dos dados para esta reserva, nos termos da{' '}
-              <Link to="/politica-de-privacidade" target="_blank" rel="noreferrer">
-                Política de Privacidade
-              </Link>
-              .
+              <PolicyModalLink>Política de Privacidade</PolicyModalLink>.
             </span>
           </ConsentBox>
         )}

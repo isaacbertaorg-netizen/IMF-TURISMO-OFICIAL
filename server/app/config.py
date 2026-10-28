@@ -77,7 +77,7 @@ class Settings:
         self.smtp_port = int(os.getenv("SMTP_PORT", "587"))
         self.smtp_user = os.getenv("SMTP_USER", "")
         self.smtp_password = os.getenv("SMTP_PASSWORD", "")
-        self.smtp_from = os.getenv("SMTP_FROM", "") or self.smtp_user
+        self.smtp_from = os.getenv("SMTP_FROM", "") or self.smtp_user or "Imfturismooo@gmail.com"
         self.smtp_starttls = os.getenv("SMTP_STARTTLS", "true").lower() in (
             "true",
             "1",

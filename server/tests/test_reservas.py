@@ -106,6 +106,39 @@ def test_criacao_aceita_data_de_nascimento_no_formato_brasileiro(
     assert str(passageiro["data_nascimento"])[:10] == "1990-05-10"
 
 
+def test_criacao_envia_confirmacao_do_pacote_por_email(
+    client, fake_supabase, cliente_token, monkeypatch
+):
+    """A reserva dispara o e-mail com os dados do pacote para o cliente."""
+    seed_excursao(fake_supabase)
+    enviados = []
+
+    def capturar(destino, nome, reserva, excursao, confirmada=False):
+        enviados.append(
+            {
+                "destino": destino,
+                "nome": nome,
+                "reserva": reserva,
+                "excursao": excursao,
+                "confirmada": confirmada,
+            }
+        )
+
+    monkeypatch.setattr(
+        "app.services.reserva_service.email.enviar_confirmacao_pacote", capturar
+    )
+
+    resp = fazer_reserva(
+        client, {"Authorization": f"Bearer {cliente_token}"}, qtd=1
+    )
+
+    assert resp.status_code == 201
+    assert len(enviados) == 1
+    assert enviados[0]["destino"] == "cliente@teste.com"
+    assert enviados[0]["excursao"]["destino"] == "Caldas Novas"
+    assert enviados[0]["confirmada"] is False
+
+
 def test_criacao_rejeita_qtd_passageiros_divergente(client, fake_supabase, cliente_token):
     seed_excursao(fake_supabase)
     payload = {

@@ -14,6 +14,7 @@ import { formatarCPF, cpfValido } from '../lib/mascaras.js'
 import { linkWhatsApp, mensagemCancelamento, mensagemPagamento } from '../lib/whatsapp.js'
 import { colors } from '../theme.js'
 import DateInput from '../components/DateInput.jsx'
+import PolicyModalLink from '../components/PolicyModal.jsx'
 
 const Page = styled.main`
   max-width: 900px;
@@ -454,10 +455,7 @@ function MinhasReservas() {
                       <span>
                         Declaro ser responsável legal pelo(s) passageiro(s) menor(es) de 18 anos e
                         autorizo o tratamento dos dados para esta reserva, nos termos da{' '}
-                        <Link to="/politica-de-privacidade" target="_blank" rel="noreferrer">
-                          Política de Privacidade
-                        </Link>
-                        .
+                        <PolicyModalLink>Política de Privacidade</PolicyModalLink>.
                       </span>
                     </ConsentBox>
                   )}

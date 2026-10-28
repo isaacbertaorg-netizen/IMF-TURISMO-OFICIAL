@@ -11,7 +11,13 @@ export function ProtectedRoute({ children }) {
   const { autenticado } = useAuth()
   const location = useLocation()
   if (!autenticado) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: `${location.pathname}${location.search}` }}
+      />
+    )
   }
   return children
 }
@@ -31,7 +37,13 @@ export function ClienteRoute({ children }) {
   const { autenticado, ehAdmin } = useAuth()
   const location = useLocation()
   if (!autenticado) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: `${location.pathname}${location.search}` }}
+      />
+    )
   }
   // Administrador não tem perfil de cliente: volta para o painel.
   if (ehAdmin) {

@@ -6,9 +6,11 @@
 // ===========================================================================
 
 import { useCallback, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 import AuthLayout, { ErrorText, PillInput, PrimaryButton } from '../components/AuthLayout.jsx'
+import PasswordInput from '../components/PasswordInput.jsx'
+import PolicyModalLink from '../components/PolicyModal.jsx'
 import EnderecoForm from '../components/EnderecoForm.jsx'
 import { api, mensagemErro } from '../lib/api.js'
 import { useAuth } from '../lib/auth.jsx'
@@ -44,7 +46,7 @@ const ConsentText = styled.span`
   line-height: 1.4;
 `
 
-const PolicyLink = styled(Link)`
+const PolicyLink = styled(PolicyModalLink)`
   color: ${colors.primary};
   font-weight: 600;
   text-decoration: underline;
@@ -70,6 +72,8 @@ const CAMPOS_VAZIOS = {
 function Cadastro() {
   const { loginCliente } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const voltarPara = location.state?.from ?? '/'
   const [form, setForm] = useState(CAMPOS_VAZIOS)
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -113,7 +117,8 @@ function Cadastro() {
       })
       // Conta criada; autentica em seguida para entrar direto.
       await loginCliente(form.email.trim(), form.senha)
-      navigate('/', { replace: true })
+      // Se o cadastro começou a partir de uma reserva, volta para ela.
+      navigate(voltarPara, { replace: true })
     } catch (err) {
       setErro(mensagemErro(err, 'Não foi possível criar a conta. Revise os dados.'))
     } finally {
@@ -129,28 +134,21 @@ function Cadastro() {
         <PillInput type="email" placeholder="E-mail" required value={form.email} onChange={(e) => atualizar('email', e.target.value)} autoComplete="email" />
         <PillInput placeholder="Telefone (+55 (DD) 90000-0000)" required inputMode="tel" maxLength={19} value={form.telefone} onChange={(e) => atualizar('telefone', formatarTelefone(e.target.value))} autoComplete="tel" />
         <EnderecoForm valores={form} onChange={atualizar} />
-        <PillInput type="password" placeholder="Senha (mín. 6)" required minLength={6} value={form.senha} onChange={(e) => atualizar('senha', e.target.value)} autoComplete="new-password" />
-        <PillInput type="password" placeholder="Confirme sua senha" required minLength={6} value={form.confirmar_senha} onChange={(e) => atualizar('confirmar_senha', e.target.value)} autoComplete="new-password" />
+        <PasswordInput placeholder="Senha (mín. 6)" required minLength={6} value={form.senha} onChange={(e) => atualizar('senha', e.target.value)} autoComplete="new-password" />
+        <PasswordInput placeholder="Confirme sua senha" required minLength={6} value={form.confirmar_senha} onChange={(e) => atualizar('confirmar_senha', e.target.value)} autoComplete="new-password" />
         <ConsentRow>
           <input
             id="aceite-privacidade-cadastro"
             type="checkbox"
             required
+            aria-label="Li e aceito a Política de Privacidade e os Termos de Uso"
             checked={form.aceite_privacidade}
             onChange={(e) => atualizar('aceite_privacidade', e.target.checked)}
           />
           <ConsentText>
-            <label htmlFor="aceite-privacidade-cadastro">
-              Li e aceito a{' '}
-              <PolicyLink to="/politica-de-privacidade" target="_blank" rel="noreferrer">
-                Política de Privacidade
-              </PolicyLink>{' '}
-              e os{' '}
-              <PolicyLink to="/politica-de-privacidade" target="_blank" rel="noreferrer">
-                Termos de Uso
-              </PolicyLink>
-              .
-            </label>
+            Li e aceito a{' '}
+            <PolicyLink>Política de Privacidade</PolicyLink> e os{' '}
+            <PolicyLink>Termos de Uso</PolicyLink>.
           </ConsentText>
         </ConsentRow>
         {erro && <ErrorText>{erro}</ErrorText>}
@@ -159,7 +157,16 @@ function Cadastro() {
         </PrimaryButton>
       </form>
       <Hint>
-        Já tem conta? <Link to="/login">Entrar</Link>
+        {location.state?.from ? (
+          <>
+            Depois de criar a conta, você volta para finalizar sua reserva.
+            <br />
+          </>
+        ) : null}
+        Já tem conta?{' '}
+        <Link to="/login" state={{ from: location.state?.from }}>
+          Entrar
+        </Link>
       </Hint>
     </AuthLayout>
   )

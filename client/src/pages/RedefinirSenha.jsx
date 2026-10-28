@@ -9,10 +9,10 @@ import { Link, useSearchParams } from 'react-router-dom'
 import styled from 'styled-components'
 import AuthLayout, {
   ErrorText,
-  PillInput,
   PrimaryButton,
   SuccessText,
 } from '../components/AuthLayout.jsx'
+import PasswordInput from '../components/PasswordInput.jsx'
 import { api, mensagemErro } from '../lib/api.js'
 import { colors } from '../theme.js'
 import fundoLogin from '../assets/fundo-login.jpg'
@@ -105,8 +105,7 @@ function RedefinirSenha() {
             alignItems: 'center',
           }}
         >
-          <PillInput
-            type="password"
+          <PasswordInput
             required
             minLength={6}
             placeholder="Nova senha"
@@ -114,8 +113,7 @@ function RedefinirSenha() {
             onChange={(e) => setSenha(e.target.value)}
             autoComplete="new-password"
           />
-          <PillInput
-            type="password"
+          <PasswordInput
             required
             minLength={6}
             placeholder="Confirme a nova senha"

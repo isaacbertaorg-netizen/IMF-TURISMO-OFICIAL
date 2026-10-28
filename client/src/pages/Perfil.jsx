@@ -6,10 +6,11 @@
 // ===========================================================================
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 import EnderecoForm from '../components/EnderecoForm.jsx'
 import EditorFoto from '../components/EditorFoto.jsx'
+import PolicyModalLink from '../components/PolicyModal.jsx'
 import { api, formatarDataHoraLocal, mensagemErro } from '../lib/api.js'
 import { apenasDigitos, formatarTelefone } from '../lib/mascaras.js'
 import { useAuth } from '../lib/auth.jsx'
@@ -225,7 +226,7 @@ const ConsentStatus = styled.span`
   margin-left: 1.7rem;
 `
 
-const PolicyLink = styled(Link)`
+const PolicyLink = styled(PolicyModalLink)`
   color: ${colors.primary};
   font-weight: 600;
   text-decoration: underline;
@@ -526,9 +527,7 @@ function Perfil() {
             <ConsentTitle>Privacidade e autorizações</ConsentTitle>
             <ConsentIntro>
               Você controla como seus dados e sua imagem são usados. Leia a{' '}
-              <PolicyLink to="/politica-de-privacidade" target="_blank" rel="noreferrer">
-                Política de Privacidade e os Termos de Uso
-              </PolicyLink>
+              <PolicyLink>Política de Privacidade e os Termos de Uso</PolicyLink>
               . As autorizações opcionais podem ser revogadas a qualquer momento.
             </ConsentIntro>
 

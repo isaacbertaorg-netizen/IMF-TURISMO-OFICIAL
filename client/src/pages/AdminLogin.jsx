@@ -7,6 +7,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AuthLayout, { ErrorText, PillInput, PrimaryButton } from '../components/AuthLayout.jsx'
+import PasswordInput from '../components/PasswordInput.jsx'
 import { mensagemErro } from '../lib/api.js'
 import { useAuth } from '../lib/auth.jsx'
 import fundoLogin from '../assets/fundo-login.jpg'
@@ -37,7 +38,7 @@ function AdminLogin() {
     <AuthLayout fundo={fundoLogin}>
       <form onSubmit={entrar} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
         <PillInput placeholder="Login administrativo" required minLength={3} value={login} onChange={(e) => setLogin(e.target.value)} autoComplete="username" />
-        <PillInput type="password" placeholder="Senha" required minLength={6} value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" />
+        <PasswordInput placeholder="Senha" required minLength={6} value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" />
         {erro && <ErrorText>{erro}</ErrorText>}
         <PrimaryButton type="submit" disabled={enviando}>
           {enviando ? 'Entrando…' : 'Entrar'}

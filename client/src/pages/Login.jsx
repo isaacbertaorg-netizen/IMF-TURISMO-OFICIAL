@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 import AuthLayout, { ErrorText, PillInput, PrimaryButton } from '../components/AuthLayout.jsx'
+import PasswordInput from '../components/PasswordInput.jsx'
 import { mensagemErro } from '../lib/api.js'
 import { useAuth } from '../lib/auth.jsx'
 import { colors } from '../theme.js'
@@ -86,8 +87,7 @@ function Login() {
           onChange={(e) => setEmail(e.target.value)}
           autoComplete="email"
         />
-        <PillInput
-          type="password"
+        <PasswordInput
           required
           minLength={6}
           placeholder="Senha"
@@ -110,7 +110,10 @@ function Login() {
         </PrimaryButton>
       </form>
       <Signup>
-        Não tem conta? <Link to="/cadastro">Cadastre-se</Link>
+        Não tem conta?{' '}
+        <Link to="/cadastro" state={{ from: location.state?.from }}>
+          Cadastre-se
+        </Link>
       </Signup>
     </AuthLayout>
   )

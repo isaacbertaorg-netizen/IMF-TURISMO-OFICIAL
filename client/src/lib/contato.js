@@ -5,7 +5,7 @@
 // ===========================================================================
 
 // Canal oficial de privacidade e atendimento por e-mail.
-export const EMAIL_CONTATO = 'imfturismooficial@gmail.com'
+export const EMAIL_CONTATO = 'Imfturismooo@gmail.com'
 
 // Link completo do perfil (sem parâmetros de compartilhamento).
 export const INSTAGRAM_URL = 'https://www.instagram.com/imf_turismo'

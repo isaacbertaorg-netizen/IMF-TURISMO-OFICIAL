@@ -20,6 +20,7 @@ import {
 import { useWhatsApp } from '../lib/useWhatsApp.js'
 import { formatarWhatsApp, linkWhatsApp } from '../lib/whatsapp.js'
 import { colors } from '../theme.js'
+import PolicyModalLink from './PolicyModal.jsx'
 import logoUrl from '../assets/logo-imf-turismo.jfif'
 
 const Wrap = styled.footer`
@@ -141,6 +142,20 @@ const FooterLink = styled(Link)`
   color: #dbe4f0;
   font-size: 0.88rem;
   line-height: 1.4;
+
+  &:hover {
+    color: #fff;
+    text-decoration: underline;
+  }
+`
+
+const FooterPolicyLink = styled(PolicyModalLink)`
+  color: #dbe4f0;
+  font-size: 0.88rem;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+  text-decoration: none;
 
   &:hover {
     color: #fff;
@@ -295,7 +310,7 @@ function Footer() {
           </ExternalLink>
           <ExternalLink href={`mailto:${EMAIL_CONTATO}`}>Envie um e-mail</ExternalLink>
           <FooterLink to="/perguntas-frequentes">Perguntas frequentes</FooterLink>
-          <FooterLink to="/politica-de-privacidade">Política de Privacidade e Termos</FooterLink>
+          <FooterPolicyLink>Política de Privacidade e Termos</FooterPolicyLink>
         </Column>
 
         <Column>

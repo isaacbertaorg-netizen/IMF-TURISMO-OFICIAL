@@ -10,10 +10,11 @@
 # do banco atualizar o estoque (evita dupla contagem).
 # ===========================================================================
 
+import logging
 from datetime import date, datetime, timezone
 from typing import Any
 
-from app.core import supabase
+from app.core import email, supabase
 from app.core.datas import hoje_brasilia, idade_na_data
 from app.core.exceptions import (
     ConsentimentoMenorError,
@@ -26,6 +27,42 @@ from app.core.exceptions import (
 )
 from app.core.lgpd import VERSAO_CONSENTIMENTOS
 from app.services.excursao_service import obter_excursao
+
+logger = logging.getLogger(__name__)
+
+
+def notificar_cliente_reserva(
+    reserva: dict[str, Any],
+    excursao: dict[str, Any],
+    confirmada: bool = False,
+) -> None:
+    """Envia ao cliente o resumo do pacote por e-mail.
+
+    A falha de SMTP não pode desfazer uma reserva já gravada; por isso o erro
+    é registrado e engolido. Sem SMTP configurado, o próprio módulo de e-mail
+    apenas registra a ocorrência.
+    """
+    cliente = supabase.buscar_um(
+        supabase.get_supabase()
+        .table("cliente")
+        .select("nome_cliente,email")
+        .eq("id_cliente", reserva["id_cliente"])
+    )
+    if not cliente or not cliente.get("email"):
+        return
+
+    try:
+        email.enviar_confirmacao_pacote(
+            cliente["email"],
+            cliente.get("nome_cliente") or "cliente",
+            reserva,
+            excursao,
+            confirmada=confirmada,
+        )
+    except Exception:  # noqa: BLE001 - SMTP não pode derrubar o fluxo de reserva
+        logger.exception(
+            "Falha ao enviar e-mail de confirmacao da reserva %s", reserva.get("id_reserva")
+        )
 
 
 def _validar_responsavel_menor(
@@ -115,6 +152,10 @@ def criar_reserva(
         supabase.get_supabase().table("passageiro").insert(
             [{"id_reserva": reserva["id_reserva"], **passageiro} for passageiro in passageiros]
         ).execute()
+
+    # Envia o resumo do pacote para o e-mail cadastrado, sem impedir a reserva
+    # caso o SMTP esteja indisponível.
+    notificar_cliente_reserva(reserva, excursao, confirmada=False)
 
     return reserva
 
