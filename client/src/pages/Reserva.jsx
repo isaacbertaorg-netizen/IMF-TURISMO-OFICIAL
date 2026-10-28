@@ -17,20 +17,10 @@ import { linkWhatsApp, mensagemPagamento } from '../lib/whatsapp.js'
 import { colors } from '../theme.js'
 import DateInput from '../components/DateInput.jsx'
 import PolicyModalLink from '../components/PolicyModal.jsx'
+import PageBackground from '../components/PageBackground.jsx'
+import { fundoDaExcursao } from '../lib/fundos.js'
 import cardCaldas from '../assets/card-caldas-novas.jpg'
 import cardMaceio from '../assets/card-maceio.webp'
-import fundoReserva from '../assets/fundo-cadastro.webp'
-
-const Background = styled.div`
-  min-height: calc(100vh - 65px);
-  padding: 2rem 1rem 4rem;
-  background-image:
-    linear-gradient(rgb(255 255 255 / 0.86), rgb(255 255 255 / 0.86)),
-    url(${fundoReserva});
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-`
 
 const Page = styled.main`
   max-width: 760px;
@@ -275,6 +265,7 @@ function passageiroVazio() {
 
 function Reserva() {
   const { id } = useParams()
+  const fundo = fundoDaExcursao(id)
   const [excursao, setExcursao] = useState(null)
   const [qtd, setQtd] = useState(2)
   const [passageiros, setPassageiros] = useState([passageiroVazio(), passageiroVazio()])
@@ -381,13 +372,13 @@ function Reserva() {
 
   if (!excursao) {
     return (
-      <Background>
+      <PageBackground fundo={fundo}>
         <Page>
           <Title>Confirmar Reserva</Title>
           {erro ? <ErrorText>{erro}</ErrorText> : <p>Carregando…</p>}
           <Back to="/excursoes">← Voltar às excursões</Back>
         </Page>
-      </Background>
+      </PageBackground>
     )
   }
 
@@ -408,7 +399,7 @@ function Reserva() {
     })
 
     return (
-      <Background>
+      <PageBackground fundo={fundo}>
         <Page>
           <Title>Pagamento</Title>
           <Card>
@@ -454,12 +445,12 @@ function Reserva() {
             <Back to="/minhas-reservas">Ver minhas reservas</Back>
           </Card>
         </Page>
-      </Background>
+      </PageBackground>
     )
   }
 
   return (
-    <Background>
+    <PageBackground fundo={fundo}>
       <Page>
         <Title>Confirmar Reserva</Title>
         <Card>
@@ -550,7 +541,7 @@ function Reserva() {
         </Card>
         <Back to="/excursoes">← Voltar às excursões</Back>
       </Page>
-    </Background>
+    </PageBackground>
   )
 }
 

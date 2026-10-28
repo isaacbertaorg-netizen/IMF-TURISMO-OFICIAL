@@ -10,13 +10,14 @@ import { Link, useParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { colors } from '../theme.js'
 import { api, formatarDataBR, formatarMoeda } from '../lib/api.js'
+import { fundoDaExcursao } from '../lib/fundos.js'
+import PageBackground from '../components/PageBackground.jsx'
 import cardCaldas from '../assets/card-caldas-novas.jpg'
 import cardMaceio from '../assets/card-maceio.webp'
 
 const Page = styled.main`
   max-width: 900px;
   margin: 0 auto;
-  padding: 1.5rem 1rem 3rem;
 `
 
 const Back = styled(Link)`
@@ -135,6 +136,7 @@ function hojeBrasiliaISO() {
 
 function ExcursionDetails() {
   const { id } = useParams()
+  const fundo = fundoDaExcursao(id)
   const [excursao, setExcursao] = useState(null)
   const [carregando, setCarregando] = useState(true)
   const [naoEncontrada, setNaoEncontrada] = useState(false)
@@ -159,18 +161,22 @@ function ExcursionDetails() {
 
   if (carregando) {
     return (
-      <Page>
-        <Feedback>Carregando detalhes…</Feedback>
-      </Page>
+      <PageBackground fundo={fundo}>
+        <Page>
+          <Feedback>Carregando detalhes…</Feedback>
+        </Page>
+      </PageBackground>
     )
   }
 
   if (!excursao) {
     return (
-      <Page>
-        <Back to="/excursoes">← Voltar às excursões</Back>
-        <Feedback>{naoEncontrada ? 'Excursão não encontrada.' : 'Falha ao carregar. Tente novamente.'}</Feedback>
-      </Page>
+      <PageBackground fundo={fundo}>
+        <Page>
+          <Back to="/excursoes">← Voltar às excursões</Back>
+          <Feedback>{naoEncontrada ? 'Excursão não encontrada.' : 'Falha ao carregar. Tente novamente.'}</Feedback>
+        </Page>
+      </PageBackground>
     )
   }
 
@@ -179,9 +185,10 @@ function ExcursionDetails() {
     Boolean(excursao.data_ida) && excursao.data_ida < hojeBrasiliaISO()
 
   return (
-    <Page>
-      <Back to="/excursoes">← Voltar às excursões</Back>
-      <Card>
+    <PageBackground fundo={fundo}>
+      <Page>
+        <Back to="/excursoes">← Voltar às excursões</Back>
+        <Card>
         <Photo
           src={escolherFoto(excursao)}
           alt={excursao.destino}
@@ -221,8 +228,9 @@ function ExcursionDetails() {
             )}
           </Actions>
         </Body>
-      </Card>
-    </Page>
+        </Card>
+      </Page>
+    </PageBackground>
   )
 }
 

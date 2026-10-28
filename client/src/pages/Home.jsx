@@ -366,53 +366,115 @@ const ExperienceInner = styled.div`
   padding: 3.5rem 1rem;
 `
 
-const Gallery = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.9rem;
+const Carousel = styled.section`
+  position: relative;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  background-color: ${colors.navy};
+  box-shadow: 0 12px 32px rgb(15 45 82 / 0.14);
+`
+
+const CarouselViewport = styled.div`
+  overflow: hidden;
+  aspect-ratio: 3 / 2;
 
   @media (width <= 800px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    aspect-ratio: 1 / 1;
   }
 
   @media (width <= 520px) {
-    gap: 0.6rem;
+    aspect-ratio: 4 / 5;
   }
 `
 
-const GalleryItem = styled.figure`
+const CarouselTrack = styled.div`
+  display: flex;
+  height: 100%;
+  transform: translateX(${(props) => -props.$indice * 100}%);
+  transition: transform 0.55s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`
+
+const CarouselSlide = styled.figure`
   position: relative;
+  flex: 0 0 100%;
+  height: 100%;
   margin: 0;
-  border-radius: 1rem;
-  overflow: hidden;
-  aspect-ratio: 1 / 1;
-  background-color: ${colors.navy};
-
-  &:hover img {
-    transform: scale(1.04);
-  }
 `
 
-const GalleryPhoto = styled.img`
+const CarouselPhoto = styled.img`
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s ease;
 `
 
-const GalleryCaption = styled.figcaption`
+const CarouselCaption = styled.figcaption`
   position: absolute;
   inset: auto 0 0 0;
-  padding: 2.2rem 1rem 0.9rem;
-  background: linear-gradient(to top, rgb(15 45 82 / 0.9), transparent);
+  padding: 3.5rem 1.5rem 1.9rem;
+  background: linear-gradient(to top, rgb(15 45 82 / 0.92), transparent);
   color: #fff;
-  font-weight: 700;
-  font-size: 0.9rem;
+  font-weight: 800;
+  font-size: 1.15rem;
 
   @media (width <= 520px) {
-    padding: 1.6rem 0.7rem 0.6rem;
-    font-size: 0.78rem;
+    padding: 2.4rem 1rem 1.6rem;
+    font-size: 0.95rem;
   }
+`
+
+const CarouselButton = styled.button`
+  position: absolute;
+  top: 50%;
+  ${(props) => (props.$lado === 'esquerda' ? 'left: 0.75rem;' : 'right: 0.75rem;')}
+  transform: translateY(-50%);
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 0;
+  border-radius: 999px;
+  background-color: rgb(15 45 82 / 0.55);
+  color: #fff;
+  font-size: 1.7rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgb(15 45 82 / 0.82);
+  }
+
+  @media (width <= 520px) {
+    width: 2rem;
+    height: 2rem;
+    font-size: 1.25rem;
+  }
+`
+
+const CarouselDots = styled.div`
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.75rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+`
+
+const CarouselDot = styled.button`
+  width: 0.5rem;
+  height: 0.5rem;
+  border: 0;
+  padding: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  background-color: ${(props) => (props.$ativo ? '#fff' : 'rgb(255 255 255 / 0.45)')};
+  transition: background-color 0.2s ease;
 `
 
 const OwnerCard = styled.div`
@@ -698,13 +760,66 @@ function fotoQuebrou(event, excursao) {
   }
 }
 
+// Fotos e legendas do carrossel "Viva a experiência". A ordem é a mesma da
+// galeria anterior, mas agora elas aparecem em um único bloco grande.
+const GALERIA_HOME = [
+  {
+    src: fotoGrupoRua,
+    alt: 'Grupo de clientes reunido antes da viagem',
+    legenda: 'Novas amizades',
+  },
+  {
+    src: fotoFamilia,
+    alt: 'Família aproveitando a piscina do hotel',
+    legenda: 'Hospedagem',
+  },
+  {
+    src: fotoGrupoPiscina,
+    alt: 'Clientes no parque aquático',
+    legenda: 'Passeios',
+  },
+  {
+    src: fotoOnibus,
+    alt: 'Ônibus da viagem',
+    legenda: 'Na estrada',
+  },
+  {
+    src: fotoBingo,
+    alt: 'Clientes participando de brincadeira a bordo',
+    legenda: 'Momentos a bordo',
+  },
+  {
+    src: fotoGrupoPlanta,
+    alt: 'Clientes da IMF Turismo posando juntos',
+    legenda: 'Turma IMF',
+  },
+]
+
 function Home() {
   const numero = useWhatsApp()
   const [destaques, setDestaques] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
+  const [indiceGaleria, setIndiceGaleria] = useState(0)
+  const [galeriaPausada, setGaleriaPausada] = useState(false)
   const mensagem = 'Olá! Vim pelo site da IMF Turismo e gostaria de saber mais sobre as excursões.'
   const mensagemIara = 'Olá, Iara! Vim pelo site da IMF Turismo e gostaria de falar com você.'
+
+  // O carrossel avança sozinho a cada 5 segundos. Ao passar o mouse ou focar
+  // nos controles, ele pausa para dar tempo de ler a legenda.
+  useEffect(() => {
+    if (galeriaPausada) return undefined
+    const intervalo = window.setInterval(() => {
+      setIndiceGaleria((atual) => (atual + 1) % GALERIA_HOME.length)
+    }, 5000)
+    return () => window.clearInterval(intervalo)
+  }, [galeriaPausada])
+
+  function moverGaleria(delta) {
+    setIndiceGaleria(
+      (atual) => (atual + delta + GALERIA_HOME.length) % GALERIA_HOME.length,
+    )
+  }
 
   useEffect(() => {
     let ativo = true
@@ -871,32 +986,62 @@ function Home() {
               </SectionText>
             </div>
           </SectionHeader>
-          <Gallery>
-            <GalleryItem>
-              <GalleryPhoto src={fotoGrupoRua} alt="Grupo de clientes reunido antes da viagem" loading="lazy" />
-              <GalleryCaption>Novas amizades</GalleryCaption>
-            </GalleryItem>
-            <GalleryItem>
-              <GalleryPhoto src={fotoFamilia} alt="Família aproveitando a piscina do hotel" loading="lazy" />
-              <GalleryCaption>Hospedagem</GalleryCaption>
-            </GalleryItem>
-            <GalleryItem>
-              <GalleryPhoto src={fotoGrupoPiscina} alt="Clientes no parque aquático" loading="lazy" />
-              <GalleryCaption>Passeios</GalleryCaption>
-            </GalleryItem>
-            <GalleryItem>
-              <GalleryPhoto src={fotoOnibus} alt="Ônibus da viagem" loading="lazy" />
-              <GalleryCaption>Na estrada</GalleryCaption>
-            </GalleryItem>
-            <GalleryItem>
-              <GalleryPhoto src={fotoBingo} alt="Clientes participando de brincadeira a bordo" loading="lazy" />
-              <GalleryCaption>Momentos a bordo</GalleryCaption>
-            </GalleryItem>
-            <GalleryItem>
-              <GalleryPhoto src={fotoGrupoPlanta} alt="Clientes da IMF Turismo posando juntos" loading="lazy" />
-              <GalleryCaption>Turma IMF</GalleryCaption>
-            </GalleryItem>
-          </Gallery>
+          <Carousel
+            aria-roledescription="carrossel"
+            aria-label="Momentos da IMF Turismo"
+            onMouseEnter={() => setGaleriaPausada(true)}
+            onMouseLeave={() => setGaleriaPausada(false)}
+            onFocus={() => setGaleriaPausada(true)}
+            onBlur={() => setGaleriaPausada(false)}
+          >
+            <CarouselViewport>
+              <CarouselTrack $indice={indiceGaleria}>
+                {GALERIA_HOME.map((foto, indice) => (
+                  <CarouselSlide
+                    key={foto.legenda}
+                    aria-hidden={indice !== indiceGaleria}
+                  >
+                    <CarouselPhoto
+                      src={foto.src}
+                      alt={foto.alt}
+                      loading={indice === 0 ? 'eager' : 'lazy'}
+                    />
+                    <CarouselCaption>{foto.legenda}</CarouselCaption>
+                  </CarouselSlide>
+                ))}
+              </CarouselTrack>
+            </CarouselViewport>
+
+            <CarouselButton
+              type="button"
+              $lado="esquerda"
+              onClick={() => moverGaleria(-1)}
+              aria-label="Foto anterior"
+            >
+              ‹
+            </CarouselButton>
+            <CarouselButton
+              type="button"
+              $lado="direita"
+              onClick={() => moverGaleria(1)}
+              aria-label="Próxima foto"
+            >
+              ›
+            </CarouselButton>
+
+            <CarouselDots role="group" aria-label="Escolher foto do carrossel">
+              {GALERIA_HOME.map((foto, indice) => (
+                <CarouselDot
+                  key={foto.legenda}
+                  type="button"
+                  $ativo={indice === indiceGaleria}
+                  aria-label={`Ver ${foto.legenda}`}
+                  aria-current={indice === indiceGaleria}
+                  onClick={() => setIndiceGaleria(indice)}
+                />
+              ))}
+            </CarouselDots>
+          </Carousel>
         </ExperienceInner>
       </ExperienceSection>
 
