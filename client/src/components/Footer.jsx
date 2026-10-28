@@ -311,6 +311,7 @@ function Footer() {
           <ExternalLink href={`mailto:${EMAIL_CONTATO}`}>Envie um e-mail</ExternalLink>
           <FooterLink to="/perguntas-frequentes">Perguntas frequentes</FooterLink>
           <FooterPolicyLink>Política de Privacidade e Termos</FooterPolicyLink>
+          <FooterLink to="/admin/login">Acesso da equipe</FooterLink>
         </Column>
 
         <Column>

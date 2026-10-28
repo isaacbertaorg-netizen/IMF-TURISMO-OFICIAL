@@ -19,11 +19,22 @@ import DateInput from '../components/DateInput.jsx'
 import PolicyModalLink from '../components/PolicyModal.jsx'
 import cardCaldas from '../assets/card-caldas-novas.jpg'
 import cardMaceio from '../assets/card-maceio.webp'
+import fundoReserva from '../assets/fundo-cadastro.webp'
+
+const Background = styled.div`
+  min-height: calc(100vh - 65px);
+  padding: 2rem 1rem 4rem;
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.86), rgb(255 255 255 / 0.86)),
+    url(${fundoReserva});
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+`
 
 const Page = styled.main`
   max-width: 760px;
   margin: 0 auto;
-  padding: 1.5rem 1rem 3rem;
 `
 
 const Title = styled.h1`
@@ -370,11 +381,13 @@ function Reserva() {
 
   if (!excursao) {
     return (
-      <Page>
-        <Title>Confirmar Reserva</Title>
-        {erro ? <ErrorText>{erro}</ErrorText> : <p>Carregando…</p>}
-        <Back to="/excursoes">← Voltar às excursões</Back>
-      </Page>
+      <Background>
+        <Page>
+          <Title>Confirmar Reserva</Title>
+          {erro ? <ErrorText>{erro}</ErrorText> : <p>Carregando…</p>}
+          <Back to="/excursoes">← Voltar às excursões</Back>
+        </Page>
+      </Background>
     )
   }
 
@@ -395,59 +408,62 @@ function Reserva() {
     })
 
     return (
-      <Page>
-        <Title>Pagamento</Title>
-        <Card>
-          <SuccessTitle>Reserva #{reservaCriada.id_reserva} registrada!</SuccessTitle>
-          <p>Suas vagas estão reservadas. Falta só combinar o pagamento.</p>
+      <Background>
+        <Page>
+          <Title>Pagamento</Title>
+          <Card>
+            <SuccessTitle>Reserva #{reservaCriada.id_reserva} registrada!</SuccessTitle>
+            <p>Suas vagas estão reservadas. Falta só combinar o pagamento.</p>
 
-          <Resumo>
-            <li>
-              <strong>Pacote:</strong> {excursao.destino}
-            </li>
-            <li>
-              <strong>Período:</strong> {periodo}
-            </li>
-            <li>
-              <strong>Pessoas:</strong> {reservaCriada.qtd_vagas}
-            </li>
-            <li>
-              <strong>Total:</strong> {formatarMoeda(total)}
-            </li>
-          </Resumo>
+            <Resumo>
+              <li>
+                <strong>Pacote:</strong> {excursao.destino}
+              </li>
+              <li>
+                <strong>Período:</strong> {periodo}
+              </li>
+              <li>
+                <strong>Pessoas:</strong> {reservaCriada.qtd_vagas}
+              </li>
+              <li>
+                <strong>Total:</strong> {formatarMoeda(total)}
+              </li>
+            </Resumo>
 
-          <Note>
-            Também enviamos os detalhes deste pacote para o e-mail cadastrado na sua conta.
-          </Note>
+            <Note>
+              Também enviamos os detalhes deste pacote para o e-mail cadastrado na sua conta.
+            </Note>
 
-          <p>
-            O pagamento é combinado diretamente com a IMF Turismo pelo WhatsApp. Clique no
-            botão abaixo: a mensagem já vai preenchida com os dados da sua reserva.
-          </p>
+            <p>
+              O pagamento é combinado diretamente com a IMF Turismo pelo WhatsApp. Clique no
+              botão abaixo: a mensagem já vai preenchida com os dados da sua reserva.
+            </p>
 
-          <WhatsAppButton
-            href={linkWhatsApp(whatsappNumero, mensagem)}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Pagar pelo WhatsApp
-          </WhatsAppButton>
+            <WhatsAppButton
+              href={linkWhatsApp(whatsappNumero, mensagem)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Pagar pelo WhatsApp
+            </WhatsAppButton>
 
-          <Note>
-            A reserva fica como “Aguardando pagamento” até a IMF Turismo confirmar o
-            recebimento. Você pode acompanhar em Minhas Reservas.
-          </Note>
-          <Back to="/minhas-reservas">Ver minhas reservas</Back>
-        </Card>
-      </Page>
+            <Note>
+              A reserva fica como “Aguardando pagamento” até a IMF Turismo confirmar o
+              recebimento. Você pode acompanhar em Minhas Reservas.
+            </Note>
+            <Back to="/minhas-reservas">Ver minhas reservas</Back>
+          </Card>
+        </Page>
+      </Background>
     )
   }
 
   return (
-    <Page>
-      <Title>Confirmar Reserva</Title>
-      <Card>
-        <TopRow>
+    <Background>
+      <Page>
+        <Title>Confirmar Reserva</Title>
+        <Card>
+          <TopRow>
           <Photo
             src={escolherFoto(excursao)}
             alt={excursao.destino}
@@ -531,9 +547,10 @@ function Reserva() {
             {enviando ? 'Confirmando…' : 'Confirmar Reserva'}
           </ConfirmButton>
         </Counter>
-      </Card>
-      <Back to="/excursoes">← Voltar às excursões</Back>
-    </Page>
+        </Card>
+        <Back to="/excursoes">← Voltar às excursões</Back>
+      </Page>
+    </Background>
   )
 }
 

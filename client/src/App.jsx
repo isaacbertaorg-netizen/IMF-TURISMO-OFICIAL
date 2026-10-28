@@ -5,7 +5,7 @@
 // (oculta) e /admin/* (AdminRoute com sidebar).
 // ===========================================================================
 
-import { BrowserRouter, Link, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom'
 import styled from 'styled-components'
 import AdminLayout from './components/AdminLayout.jsx'
 import Footer from './components/Footer.jsx'
@@ -107,6 +107,7 @@ function App() {
                 </AdminRoute>
               }
             >
+              <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="excursoes" element={<AdminExcursoes />} />
               <Route path="reservas" element={<AdminReservas />} />

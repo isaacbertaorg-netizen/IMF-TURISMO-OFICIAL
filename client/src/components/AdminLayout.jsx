@@ -1,7 +1,7 @@
 // ===========================================================================
 // IMF TURISMO — moldura administrativa (Páginas 5 e 6 do protótipo)
-// Sidebar azul-marinho fixa à esquerda; conteúdo à direita. Itens em texto
-// claro, sem ícones (seção 2.1 do PRODUCT.md).
+// Sidebar azul-marinho fixa à esquerda; conteúdo à direita. Os nomes dos
+// itens foram simplificados para facilitar o uso pela equipe da IMF.
 // ===========================================================================
 
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
@@ -29,6 +29,24 @@ const Sidebar = styled.aside`
   }
 `
 
+const Brand = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid rgb(255 255 255 / 0.15);
+`
+
+const BrandName = styled.strong`
+  color: #fff;
+  font-size: 1.05rem;
+`
+
+const BrandSub = styled.span`
+  color: #94a3b8;
+  font-size: 0.75rem;
+`
+
 const SideItem = styled(NavLink)`
   color: #dbe4f0;
   font-size: 0.95rem;
@@ -36,6 +54,23 @@ const SideItem = styled(NavLink)`
   &.active {
     color: #fff;
     font-weight: 700;
+  }
+
+  &:hover {
+    color: #fff;
+    text-decoration: underline;
+  }
+`
+
+const SiteLink = styled(Link)`
+  margin-top: auto;
+  padding-top: 1rem;
+  color: #dbe4f0;
+  font-size: 0.85rem;
+
+  &:hover {
+    color: #fff;
+    text-decoration: underline;
   }
 `
 
@@ -47,13 +82,19 @@ const Content = styled.main`
 `
 
 const OutButton = styled.button`
-  margin-top: auto;
   border: 0;
+  border-top: 1px solid rgb(255 255 255 / 0.15);
   background: transparent;
   color: #dbe4f0;
   text-align: left;
   font-size: 0.95rem;
-  padding: 0;
+  padding: 0.9rem 0 0;
+  cursor: pointer;
+
+  &:hover {
+    color: #fff;
+    text-decoration: underline;
+  }
 `
 
 function AdminLayout() {
@@ -68,12 +109,19 @@ function AdminLayout() {
   return (
     <Wrap>
       <Sidebar>
-        <SideItem to="/admin/dashboard">Painel Administrativo</SideItem>
+        <Brand>
+          <BrandName>IMF Turismo</BrandName>
+          <BrandSub>Painel da equipe</BrandSub>
+        </Brand>
+        <SideItem to="/admin/dashboard">Visão geral</SideItem>
         <SideItem to="/admin/excursoes">Excursões</SideItem>
-        <SideItem to="/admin/clientes">Clientes ＞</SideItem>
-        <SideItem to="/admin/reservas">Reservas ＞</SideItem>
+        <SideItem to="/admin/reservas">Reservas</SideItem>
+        <SideItem to="/admin/clientes">Clientes</SideItem>
+        <SiteLink to="/" target="_blank" rel="noreferrer">
+          Ver site
+        </SiteLink>
         <OutButton type="button" onClick={encerrar}>
-          Sair
+          Sair da conta
         </OutButton>
       </Sidebar>
       <Content>
@@ -84,4 +132,3 @@ function AdminLayout() {
 }
 
 export default AdminLayout
-export { Link }

@@ -15,7 +15,54 @@ const Title = styled.h1`
   color: ${colors.navy};
   font-weight: 800;
   font-size: 1.9rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.35rem;
+`
+
+const Intro = styled.p`
+  color: ${colors.textMuted};
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+`
+
+const QuickGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+`
+
+const QuickCard = styled(Link)`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem 1.1rem;
+  border-left: 4px solid ${colors.primary};
+  border-radius: 0.5rem;
+  background-color: ${colors.background};
+  box-shadow: 0 8px 24px rgb(15 45 82 / 0.08);
+  text-decoration: none;
+
+  &:hover {
+    background-color: #f8fbff;
+  }
+`
+
+const QuickTitle = styled.strong`
+  color: ${colors.navy};
+  font-size: 0.95rem;
+`
+
+const QuickText = styled.span`
+  color: ${colors.textMuted};
+  font-size: 0.8rem;
+  line-height: 1.4;
+`
+
+const SectionTitle = styled.h2`
+  color: ${colors.navy};
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
 `
 
 const Cards = styled.div`
@@ -122,7 +169,25 @@ function AdminDashboard() {
 
   return (
     <>
-      <Title>Painel Administrativo</Title>
+      <Title>Painel da IMF</Title>
+      <Intro>
+        Tudo o que você precisa para cuidar das excursões e reservas em um só lugar. Comece por
+        um dos atalhos abaixo.
+      </Intro>
+      <QuickGrid>
+        <QuickCard to="/admin/excursoes">
+          <QuickTitle>Cadastrar excursão</QuickTitle>
+          <QuickText>Adicione destino, datas, valor, vagas e a foto do pacote.</QuickText>
+        </QuickCard>
+        <QuickCard to="/admin/reservas">
+          <QuickTitle>Reservas e pagamentos</QuickTitle>
+          <QuickText>Veja quem reservou e confirme o pagamento recebido.</QuickText>
+        </QuickCard>
+        <QuickCard to="/admin/clientes">
+          <QuickTitle>Clientes</QuickTitle>
+          <QuickText>Consulte os dados de contato das pessoas cadastradas.</QuickText>
+        </QuickCard>
+      </QuickGrid>
       {erro && <Feedback>{erro}</Feedback>}
       <Cards>
         <TotalCard>
@@ -134,6 +199,7 @@ function AdminDashboard() {
           <TotalLabel>Total de Clientes</TotalLabel>
         </TotalCard>
       </Cards>
+      <SectionTitle>Reservas recentes</SectionTitle>
       <TableCard>
         <Table>
           <thead>

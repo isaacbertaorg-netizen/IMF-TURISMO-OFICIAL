@@ -143,15 +143,15 @@ function Excursoes() {
           onChange={(e) => atualizar('destino', e.target.value)}
         />
         <DateInput
-          aria-label="Data de ida"
-          placeholder="Ida (DD/MM/AAAA)"
+          aria-label="Data de ida (DD/MM/AAAA)"
+          placeholder="Ida"
           value={filtros.data_inicio}
           onChange={(valor) => atualizar('data_inicio', valor)}
           style={{ flex: '1 1 140px', minWidth: 120, width: 'auto' }}
         />
         <DateInput
-          aria-label="Data de volta"
-          placeholder="Volta (DD/MM/AAAA)"
+          aria-label="Data de volta (DD/MM/AAAA)"
+          placeholder="Volta"
           value={filtros.data_fim}
           onChange={(valor) => atualizar('data_fim', valor)}
           style={{ flex: '1 1 140px', minWidth: 120, width: 'auto' }}
